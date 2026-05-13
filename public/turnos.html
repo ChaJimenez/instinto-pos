@@ -407,7 +407,7 @@ async function guardarEmpleados() {
     empleados[i].salarioDia = parseFloat(row.querySelector('.inp-salario')?.value) || 0;
   });
   empleados = empleados.filter(e => e.nombre);
-  const pin = document.getElementById('pinInput').value || prompt('PIN admin:') || '';
+  const pin = document.getElementById('pinInput').value;
   const msg = document.getElementById('saveMsg');
   try {
     const r = await fetch('/api/empleados', {

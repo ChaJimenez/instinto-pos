@@ -1,7 +1,13 @@
-// INSTINTO POS — Service Worker v1
-// Cachea el app shell para que funcione sin conexión
-const CACHE = 'instinto-pos-v1';
-const SHELL = ['/'];
+// INSTINTO POS — Service Worker v2
+// Cachea el app shell completo para funcionar sin conexión
+const CACHE = 'instinto-pos-v2';
+const SHELL = [
+  '/',
+  '/index.html',
+  '/cocina.html',
+  '/turnos.html',
+  '/reportes.html',
+];
 
 self.addEventListener('install', e => {
   e.waitUntil(
@@ -24,12 +30,12 @@ self.addEventListener('activate', e => {
 self.addEventListener('fetch', e => {
   const url = new URL(e.request.url);
 
-  // Llamadas a la API: siempre red primero, sin cachear
+  // Llamadas a la API: red primero, fallback JSON vacío (no cachear)
   if (url.pathname.startsWith('/api/')) {
     e.respondWith(
       fetch(e.request).catch(() =>
         new Response(
-          JSON.stringify({ error: 'offline', jobs: [], ts: 0 }),
+          JSON.stringify({ error: 'offline', jobs: [], ts: 0, cmd: [], vta: [], mes: [], canc: [] }),
           { headers: { 'Content-Type': 'application/json' } }
         )
       )
@@ -37,18 +43,32 @@ self.addEventListener('fetch', e => {
     return;
   }
 
-  // App shell (HTML + assets): cache primero, luego red
+  // Navegación (HTML): cache primero con actualización en background (stale-while-revalidate)
+  if (e.request.mode === 'navigate') {
+    e.respondWith(
+      caches.open(CACHE).then(cache =>
+        cache.match(e.request).then(cached => {
+          const networkFetch = fetch(e.request).then(resp => {
+            if (resp.ok) cache.put(e.request, resp.clone());
+            return resp;
+          }).catch(() => cached || caches.match('/index.html'));
+          return cached || networkFetch;
+        })
+      )
+    );
+    return;
+  }
+
+  // Demás assets estáticos: cache primero, red como fallback
   e.respondWith(
     caches.match(e.request).then(cached => {
-      const networkFetch = fetch(e.request).then(resp => {
+      if (cached) return cached;
+      return fetch(e.request).then(resp => {
         if (resp.ok && e.request.method === 'GET') {
-          const clone = resp.clone();
-          caches.open(CACHE).then(c => c.put(e.request, clone));
+          caches.open(CACHE).then(c => c.put(e.request, resp.clone()));
         }
         return resp;
-      });
-      // Si hay cache lo retornamos de inmediato y actualizamos en background
-      return cached || networkFetch;
-    }).catch(() => caches.match('/'))
+      }).catch(() => caches.match('/index.html'));
+    })
   );
 });

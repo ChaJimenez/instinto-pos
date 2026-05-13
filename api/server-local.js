@@ -30,8 +30,9 @@ const PAGES = {
   '/turnos': 'turnos.html',
 };
 
-app.get('/cocina', (_req, res) => res.sendFile(path.join(PUB, 'cocina.html')));
-app.get('/turnos', (_req, res) => res.sendFile(path.join(PUB, 'turnos.html')));
+app.get('/cocina',   (_req, res) => res.sendFile(path.join(PUB, 'cocina.html')));
+app.get('/turnos',   (_req, res) => res.sendFile(path.join(PUB, 'turnos.html')));
+app.get('/reportes', (_req, res) => res.sendFile(path.join(PUB, 'reportes.html')));
 
 // Archivos estáticos (sw.js, etc.)
 const { static: staticMw } = require('express');
@@ -44,5 +45,6 @@ app.listen(PORT, () => {
   console.log(`\n  ✓ POS       → http://localhost:${PORT}`);
   console.log(`  ✓ Cocina    → http://localhost:${PORT}/cocina`);
   console.log(`  ✓ Turnos    → http://localhost:${PORT}/turnos`);
+  console.log(`  ✓ Reportes  → http://localhost:${PORT}/reportes`);
   console.log(`\n  Ctrl+C para detener\n`);
 });

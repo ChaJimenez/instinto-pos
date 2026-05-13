@@ -1,8 +1,9 @@
 {
   "rewrites": [
     { "source": "/api/:path*", "destination": "/api/index.js" },
-    { "source": "/cocina", "destination": "/public/cocina.html" },
-    { "source": "/turnos", "destination": "/public/turnos.html" },
-    { "source": "/(.*)", "destination": "/public/index.html" }
+    { "source": "/cocina", "destination": "/cocina.html" },
+    { "source": "/turnos", "destination": "/turnos.html" },
+    { "source": "/reportes", "destination": "/reportes.html" },
+    { "source": "/(.*)", "destination": "/index.html" }
   ]
 }
