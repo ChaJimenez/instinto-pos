@@ -1586,10 +1586,11 @@ async function enviarImpresion(comanda){
     try{
       const resp=await fetch('/api/imprimir',{method:'POST',headers:{'Content-Type':'application/json','X-API-Key':API_KEY},body:JSON.stringify({mesa:comanda.mesa,mesero:comanda.mesero,hora:comanda.hora,items:comanda.items})});
       const r=await resp.json();
-      if(r.enviados>0){toast('🖨 Enviado a cocina/barra ✓');return;}
+      if(!resp.ok){toast('⚠ Sin impresión — error '+resp.status+' (verifica servidor)');return;}
+      if(r.enviados>0){toast('🖨 Ticket enviado a cocina/barra ✓');return;}
       return;
     }catch(e){
-      if(i===2)toast('⚠ Error al enviar a cocina/barra — reintenta');
+      if(i===2)toast('⚠ Sin conexión con cocina/barra — revisa el servidor de impresión');
       else await new Promise(r=>setTimeout(r,800));
     }
   }
@@ -1632,9 +1633,11 @@ function cobrarComanda(){
     guardarCancelacionesItems();
     const pagoStr=currentPago==='Mixto'?`Mixto ($${currentMixtoEf.toLocaleString()} ef / $${currentMixtoTj.toLocaleString()} tj)`:currentPago;
     const descConAuth=currentDescuento.tipo?{...currentDescuento,autorizadoPor:gerente}:null;
+    const esNueva=!editandoId; // si no venía de una comanda guardada, la cocina aún no recibió el ticket
     const c={...buildComanda('cerrada'),pago:pagoStr,propina:currentPropina,...(gerente?{autorizadoPor:gerente}:{})};
     if(descConAuth)c.descuento=descConAuth;
     ventas.push(c);editandoId=null;guardar();
+    if(esNueva)enviarImpresion(c); // ticket cocina/barra solo si no se guardó antes
     enviarRecibo(c);
     resetForm();toast('Venta registrada ✓');switchTab('reporte');
   };
