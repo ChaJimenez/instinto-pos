@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>INSTINTO — Caja</title>
+<title>INSTINTO POS</title>
 <style>
 * { box-sizing: border-box; margin: 0; padding: 0; }
 body { font-family: system-ui, -apple-system, sans-serif; background: #f5f5f3; min-height: 100vh; color: #1a1a1a; }
@@ -204,6 +204,12 @@ body { font-family: system-ui, -apple-system, sans-serif; background: #f5f5f3; m
 /* Tile delivery */
 .mapa-icon.delivery { background: #6366f1; }
 .mapa-icon.delivery::after { content: '🛵'; font-size: 20px; }
+.mapa-icon.canal-uber { background: #1a1a1a; }
+.mapa-icon.canal-uber::after { content: '🛵'; font-size: 20px; }
+.mapa-icon.canal-rappi { background: #ff441b; }
+.mapa-icon.canal-rappi::after { content: '🛵'; font-size: 20px; }
+.mapa-icon.canal-didi { background: #f87000; }
+.mapa-icon.canal-didi::after { content: '🛵'; font-size: 20px; }
 .delivery-section { width: 100%; padding: 14px 6px 4px; border-top: 1px dashed #e0e0e0; margin-top: 6px; }
 .delivery-section-lbl { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .1em; color: #aaa; margin-bottom: 8px; padding: 0 2px; }
 /* Tile nueva mesa */
@@ -213,6 +219,20 @@ body { font-family: system-ui, -apple-system, sans-serif; background: #f5f5f3; m
 .mapa-nueva:hover .mapa-nueva-icon { border-color: #1a1a1a; color: #1a1a1a; background: #fff; }
 .mapa-nueva-lbl { font-size: 11px; color: #aaa; text-align: center; }
 
+/* ── CANAL / DELIVERY SELECTOR ── */
+.canal-row { display:flex;gap:8px;align-items:center;flex-wrap:wrap; }
+.canal-btn { padding:7px 16px;border-radius:20px;border:1px solid #ddd;font-size:13px;cursor:pointer;background:#fff;color:#555;font-weight:500;transition:all .15s;white-space:nowrap; }
+.canal-btn:hover { border-color:#999; }
+.canal-btn.sel-mesa { background:#1a1a1a;color:#fff;border-color:#1a1a1a; }
+.canal-btn.sel-uber { background:#1a1a1a;color:#fff;border-color:#1a1a1a; }
+.canal-btn.sel-rappi { background:#ff441b;color:#fff;border-color:#ff441b; }
+.canal-btn.sel-didi { background:#f87000;color:#fff;border-color:#f87000; }
+.delivery-apps { display:none;gap:8px;flex-wrap:wrap;margin-top:6px; }
+.delivery-apps.open { display:flex; }
+.canal-price-badge { font-size:11px;padding:2px 8px;border-radius:10px;font-weight:600;margin-left:6px; }
+.canal-price-badge.uber { background:#1a1a1a;color:#fff; }
+.canal-price-badge.rappi { background:#fff0ee;color:#ff441b;border:1px solid #ff441b; }
+.canal-price-badge.didi { background:#fff5ee;color:#f87000;border:1px solid #f87000; }
 /* ── OFFLINE ── */
 .offline-banner { display: none; background: #e24b4a; color: #fff; text-align: center; padding: 8px 16px; font-size: 13px; font-weight: 500; position: sticky; top: 0; z-index: 200; }
 .offline-banner.show { display: block; }
@@ -241,6 +261,20 @@ body { font-family: system-ui, -apple-system, sans-serif; background: #f5f5f3; m
   <div id="editingBanner" class="editing-banner">✏ Editando mesa — modifica y guarda o cobra al terminar.</div>
   <div class="form-row"><label>Mesa</label><input type="text" id="mesa" placeholder="Ej. 4 / Barra / Terraza" /></div>
   <div class="form-row"><label>Mesero</label><select id="meseroSel"><option value="">— Selecciona —</option></select></div>
+  <div class="form-row" id="canalRow">
+    <label>Canal</label>
+    <div>
+      <div class="canal-row">
+        <button class="canal-btn sel-mesa" id="canalMesa" onclick="setCanal(null)">Mesa</button>
+        <button class="canal-btn" id="canalDeliveryToggle" onclick="toggleDeliveryApps()">🛵 Delivery ▾</button>
+      </div>
+      <div class="delivery-apps" id="deliveryApps">
+        <button class="canal-btn" id="canalUber" onclick="setCanal('uber')">Uber Eats</button>
+        <button class="canal-btn" id="canalRappi" onclick="setCanal('rappi')">Rappi</button>
+        <button class="canal-btn" id="canalDidi" onclick="setCanal('didi')">DiDi Food</button>
+      </div>
+    </div>
+  </div>
   <br>
   <div class="sec">Menú</div>
   <div class="cat-tabs" id="catTabs"></div>
@@ -904,6 +938,7 @@ const MP={
 
 // ── ESTADO EN MEMORIA ──
 let currentItems=[], currentPago="Efectivo", editandoId=null, currentPropina=0, currentMixtoEf=0, currentMixtoTj=0;
+let currentCanal=null; // null=mesa local | 'uber'|'rappi'|'didi'
 let _currentCatItems=[];
 let comandas=[], ventas=[], meseros=[], cancelaciones=[];
 let viewMode='mapa';
@@ -1165,6 +1200,39 @@ function cancelarGerente(){
   if(cb)cb();
 }
 
+// ── CANAL DELIVERY ──
+function getPrecio(item){
+  if(currentCanal&&item.pDelivery&&item.pDelivery[currentCanal]!=null)return item.pDelivery[currentCanal];
+  return item.p;
+}
+function _updateCanalUI(){
+  const apps=['uber','rappi','didi'];
+  document.getElementById('canalMesa').className='canal-btn'+(!currentCanal?' sel-mesa':'');
+  const dlvToggle=document.getElementById('canalDeliveryToggle');
+  dlvToggle.className='canal-btn'+(currentCanal?' sel-'+currentCanal:'');
+  dlvToggle.textContent=currentCanal?({uber:'Uber Eats',rappi:'Rappi',didi:'DiDi Food'}[currentCanal]+' ✕'):'🛵 Delivery ▾';
+  apps.forEach(a=>{
+    const b=document.getElementById('canal'+a.charAt(0).toUpperCase()+a.slice(1));
+    if(b)b.className='canal-btn'+(currentCanal===a?' sel-'+a:'');
+  });
+  if(currentCanal){
+    document.getElementById('deliveryApps').classList.add('open');
+  }
+}
+function setCanal(canal){
+  currentCanal=canal;
+  _updateCanalUI();
+  if(!canal)document.getElementById('deliveryApps').classList.remove('open');
+  // Refrescar precios del menú visible
+  const activeCat=document.querySelector('.cat-btn.active')?.textContent;
+  if(activeCat)renderPlatillos(activeCat);
+}
+function toggleDeliveryApps(){
+  if(currentCanal){setCanal(null);return;}
+  const apps=document.getElementById('deliveryApps');
+  apps.classList.toggle('open');
+}
+
 // ── MENU ──
 function initMenu(){
   const ct=document.getElementById('catTabs');
@@ -1183,14 +1251,18 @@ function renderPlatillos(cat){
   _currentCatItems=(MENU[cat]||[]).filter(it=>it.activo!==false);
   clearModsStrip();
   document.getElementById('platillosGrid').innerHTML=_currentCatItems.length
-    ?_currentCatItems.map((item,i)=>`<button class="plato-btn" onclick='addPlato(${i})'><div class="plato-name">${item.n}</div><div class="plato-price">$${item.p}</div></button>`).join('')
+    ?_currentCatItems.map((item,i)=>{
+        const precio=getPrecio(item);
+        const badge=currentCanal?`<span class="canal-price-badge ${currentCanal}">${currentCanal==='uber'?'UE':currentCanal==='rappi'?'RP':'DD'}</span>`:'';
+        return`<button class="plato-btn" onclick='addPlato(${i})'><div class="plato-name">${item.n}${badge}</div><div class="plato-price">$${precio}</div></button>`;
+      }).join('')
     :'<div style="color:#bbb;font-size:13px;padding:12px 0;">Sin ítems activos en esta categoría</div>';
 }
 function addPlato(idx){
   const item=_currentCatItems[idx];
   if(!item)return;
   const cat=document.querySelector('.cat-btn.active')?.textContent||'';
-  addItem(item.n,item.p,cat);
+  addItem(item.n,getPrecio(item),cat);
   const mods=(item.mods||[]).filter(m=>m.activo!==false&&m.n);
   if(mods.length)renderModsStrip(item.n,mods);
   else clearModsStrip();
@@ -1484,8 +1556,9 @@ async function enviarImpresion(comanda){
 // ── VALIDAR / GUARDAR ──
 function tieneRestriccion(){return currentItems.some(it=>it.cortesia||it.cancelado)||currentDescuento.tipo!==null;}
 function validar(){
-  if(!document.getElementById('mesa').value.trim()){toast('⚠ Indica la mesa');return false;}
-  if(!document.getElementById('meseroSel').value){toast('⚠ Selecciona un mesero');return false;}
+  const mesaLabel=currentCanal?'# de pedido':'mesa';
+  if(!document.getElementById('mesa').value.trim()){toast('⚠ Indica '+mesaLabel);return false;}
+  if(!currentCanal&&!document.getElementById('meseroSel').value){toast('⚠ Selecciona un mesero');return false;}
   if(!currentItems.filter(it=>!it.cancelado).length){toast('⚠ Agrega al menos un producto');return false;}
   return true;
 }
@@ -1538,7 +1611,10 @@ function cobrarComanda(){
 function buildComanda(estado){
   const t=totales();
   const desc=t.descValor>0?{tipo:currentDescuento.tipo,pct:currentDescuento.pct,valor:t.descValor}:null;
-  return{id:editandoId||Date.now(),mesa:document.getElementById('mesa').value.trim(),mesero:document.getElementById('meseroSel').value,items:JSON.parse(JSON.stringify(currentItems)),total:t.cobrable,subtotal:t.bruto,descuento:desc,cortesias:t.cort,cancelados:t.canc,propina:currentPropina,hora:new Date().toLocaleTimeString('es-MX',{hour:'2-digit',minute:'2-digit'}),fecha:new Date().toLocaleDateString('es-MX'),estado};
+  const meseroVal=document.getElementById('meseroSel').value||'';
+  const obj={id:editandoId||Date.now(),mesa:document.getElementById('mesa').value.trim(),mesero:currentCanal?({uber:'Uber Eats',rappi:'Rappi',didi:'DiDi Food'}[currentCanal]+(meseroVal?' · '+meseroVal:'')):meseroVal,items:JSON.parse(JSON.stringify(currentItems)),total:t.cobrable,subtotal:t.bruto,descuento:desc,cortesias:t.cort,cancelados:t.canc,propina:currentPropina,hora:new Date().toLocaleTimeString('es-MX',{hour:'2-digit',minute:'2-digit'}),fecha:new Date().toLocaleDateString('es-MX'),estado};
+  if(currentCanal)obj.canal=currentCanal;
+  return obj;
 }
 
 function guardarCancelacionesItems(){
@@ -1554,6 +1630,8 @@ function guardarCancelacionesItems(){
 function resetForm(){
   document.getElementById('mesa').value='';document.getElementById('meseroSel').value='';
   currentItems=[];currentPago='Efectivo';currentPropina=0;currentMixtoEf=0;currentMixtoTj=0;editandoId=null;
+  currentCanal=null;document.getElementById('deliveryApps').classList.remove('open');_updateCanalUI();
+  const activeCat=document.querySelector('.cat-btn.active')?.textContent;if(activeCat)renderPlatillos(activeCat);
   document.querySelectorAll('#screen-nueva .pago-opt').forEach((e,i)=>e.classList.toggle('sel',i===0));
   document.getElementById('propinaSection').style.display='none';
   document.getElementById('mixtoSection').style.display='none';
@@ -1605,7 +1683,7 @@ function renderMapaMesas(ab){
 
   // Solo las mesas físicas (sin delivery)
   const todasMesasSet = new Set(todasMesas);
-  const abMesas = ab.filter(c => !c.delivery);
+  const abMesas = ab.filter(c => !c.delivery && !c.canal);
   const tiles = todasMesas.map(mesaId => {
     const comanda = abMesas.find(c => String(c.mesa) === mesaId);
     if(!comanda){
@@ -1649,22 +1727,26 @@ function renderMapaMesas(ab){
   }
 
   // Sección delivery — aparece debajo del mapa de mesas físicas
-  const deliveries = ab.filter(c => c.delivery);
+  const canalLabel={uber:'Uber Eats',rappi:'Rappi',didi:'DiDi Food'};
+  const deliveries = ab.filter(c => c.delivery || c.canal);
   let deliverySection = '';
   if (deliveries.length) {
     const dlvTiles = deliveries.map(c => {
       const mins   = Math.floor((now - c.id) / 60000);
       const tiempo = mins < 60 ? mins+'min' : Math.floor(mins/60)+'h'+(mins%60>0?' '+mins%60+'m':'');
       const cliente = c.delivery?.customer?.name || '';
+      const iconClass = c.canal ? 'canal-'+c.canal : 'delivery';
+      const appLbl = c.canal ? (canalLabel[c.canal]||'Delivery') : (c.delivery?.channelLabel||'Delivery');
+      const subLbl = cliente || appLbl;
       return `<div class="mapa-card" onclick="editarComanda(${c.id})">
-        <div class="mapa-icon delivery"></div>
+        <div class="mapa-icon ${iconClass}"></div>
         <div class="mapa-num" style="font-size:11px;line-height:1.3;">${esc(c.mesa)}</div>
-        ${cliente?`<div class="mapa-mesero">${esc(cliente)}</div>`:''}
+        <div class="mapa-mesero">${esc(subLbl)}</div>
         <div class="mapa-tiempo">${tiempo}</div>
       </div>`;
     }).join('');
     deliverySection = `<div class="delivery-section">
-      <div class="delivery-section-lbl">📱 Delivery · ${deliveries.length} orden${deliveries.length!==1?'es':''}</div>
+      <div class="delivery-section-lbl">🛵 Delivery · ${deliveries.length} orden${deliveries.length!==1?'es':''}</div>
       <div class="mapa-wrap" style="padding:0;">${dlvTiles}</div>
     </div>`;
   }
@@ -1832,6 +1914,10 @@ function quickStartConItem(nombre, precio, cat){
 function editarComanda(id){
   const idx=comandas.findIndex(x=>x.id===id);if(idx<0)return;
   const c=comandas[idx];
+  // Restaurar canal antes de render
+  currentCanal=c.canal||null;
+  _updateCanalUI();
+  if(!currentCanal)document.getElementById('deliveryApps').classList.remove('open');
   document.getElementById('mesa').value=c.mesa;renderMeseroSelect();document.getElementById('meseroSel').value=c.mesero;
   currentItems=JSON.parse(JSON.stringify(c.items));currentPago='Efectivo';currentPropina=0;editandoId=id;
   // Restaurar descuento
@@ -1846,6 +1932,7 @@ function editarComanda(id){
   comandas.splice(idx,1);guardar();renderTicket();
   // Banner delivery — muestra datos del cliente si es orden delivery
   const banner = document.getElementById('editingBanner');
+  const canalColors={uber:{bg:'#e8e8e8',border:'#1a1a1a',color:'#1a1a1a'},rappi:{bg:'#fff0ee',border:'#ff441b',color:'#d63000'},didi:{bg:'#fff5ee',border:'#f87000',color:'#c45f00'}};
   if (c.delivery) {
     const dlv = c.delivery;
     const cliente = dlv.customer?.name ? `👤 ${esc(dlv.customer.name)}` : '';
@@ -1857,6 +1944,11 @@ function editarComanda(id){
     banner.style.background = '#ede9fe';
     banner.style.borderColor = '#6366f1';
     banner.style.color = '#4338ca';
+  } else if (c.canal) {
+    const lbl={uber:'Uber Eats',rappi:'Rappi',didi:'DiDi Food'}[c.canal]||'Delivery';
+    const clr=canalColors[c.canal]||{bg:'#ede9fe',border:'#6366f1',color:'#4338ca'};
+    banner.innerHTML=`🛵 <strong>${lbl} · Pedido ${esc(c.mesa)}</strong> — editando. Guarda o cobra al terminar.`;
+    banner.style.background=clr.bg;banner.style.borderColor=clr.border;banner.style.color=clr.color;
   } else {
     banner.innerHTML = '✏ Editando mesa — modifica y guarda o cobra al terminar.';
     banner.style.background = '';
@@ -3159,10 +3251,31 @@ function togglePanelMenu(){
   card.style.display=open?'none':'block';
   if(!open){renderMenuEditor();card.scrollIntoView({behavior:'smooth',block:'start'});}
 }
+function _dlvPricesHtml(pDelivery,show){
+  const pd=pDelivery||{};
+  const apps=[{k:'uber',label:'Uber Eats',color:'#1a1a1a'},{k:'rappi',label:'Rappi',color:'#ff441b'},{k:'didi',label:'DiDi Food',color:'#f87000'}];
+  const rows=apps.map(a=>`<div style="display:flex;align-items:center;gap:6px;margin-bottom:5px;">
+    <span style="font-size:11px;font-weight:600;color:${a.color};min-width:72px;">${a.label}</span>
+    <span style="font-size:12px;color:#aaa;">$</span>
+    <input type="number" data-dlv="${a.k}" value="${pd[a.k]!=null?pd[a.k]:''}" placeholder="Usa precio base" min="0" step="1" style="width:80px;padding:4px 7px;border:1px solid #e0e0e0;border-radius:5px;font-size:12px;outline:none;text-align:right;" onfocus="this.style.borderColor='${a.color}'" onblur="this.style.borderColor='#e0e0e0'">
+  </div>`).join('');
+  return`<div class="item-dlv" style="display:${show?'block':'none'};padding:8px 12px 8px 28px;border-bottom:1px solid #f0f0f0;background:#fdfdf9;">${rows}</div>`;
+}
+function _toggleDlv(btn){
+  const wrapper=btn.closest('.item-wrapper');
+  const dlv=wrapper.querySelector('.item-dlv');
+  const open=dlv.style.display!=='none';
+  dlv.style.display=open?'none':'block';
+  btn.style.color=open?'#aaa':'#b06800';
+  btn.style.borderColor=open?'#ddd':'#b06800';
+  btn.style.background=open?'#fafafa':'#fffbf0';
+}
 function _menuItemRow(catId,it,idx){
   const activo=it.activo!==false;
   const nm=String(it.n||'').replace(/&/g,'&amp;').replace(/"/g,'&quot;');
   const mods=it.mods||[];
+  const pd=it.pDelivery||{};
+  const hasDlv=pd.uber!=null||pd.rappi!=null||pd.didi!=null;
   const modsHtml=mods.map(m=>{
     const mn=String(m.n||'').replace(/"/g,'&quot;');
     return`<div class="mod-row" style="display:flex;align-items:center;gap:8px;padding:4px 12px 4px 28px;border-bottom:1px solid #f0f0f0;background:#fafafa;">
@@ -3173,6 +3286,7 @@ function _menuItemRow(catId,it,idx){
     </div>`;
   }).join('');
   const modsLabel=mods.length?`Mods (${mods.length})`:'⊕ Mods';
+  const dlvLabel=hasDlv?'🛵 Delivery ✓':'🛵 Delivery';
   return`<div class="item-wrapper">
   <div style="display:flex;align-items:center;gap:8px;padding:7px 12px;border-bottom:1px solid #f5f5f5;background:${activo?'#fff':'#fafafa'};">
     <input type="text" value="${nm}" placeholder="Nombre del ítem" style="flex:1;padding:6px 10px;border:1px solid #e0e0e0;border-radius:6px;font-size:13px;outline:none;min-width:0;" onfocus="this.style.borderColor='#0D2A5E'" onblur="this.style.borderColor='#e0e0e0'">
@@ -3181,9 +3295,11 @@ function _menuItemRow(catId,it,idx){
     <label style="display:flex;align-items:center;gap:5px;font-size:12px;color:#666;cursor:pointer;white-space:nowrap;flex-shrink:0;user-select:none;">
       <input type="checkbox" ${activo?'checked':''} style="cursor:pointer;width:14px;height:14px;"> Activo
     </label>
+    <button onclick="_toggleDlv(this)" style="font-size:11px;color:${hasDlv?'#b06800':'#aaa'};border:1px solid ${hasDlv?'#b06800':'#ddd'};background:${hasDlv?'#fffbf0':'#fafafa'};border-radius:5px;padding:3px 8px;cursor:pointer;flex-shrink:0;white-space:nowrap;">${dlvLabel}</button>
     <button onclick="_toggleMods(this)" style="font-size:11px;color:${mods.length?'#0D2A5E':'#aaa'};border:1px solid ${mods.length?'#0D2A5E':'#ddd'};background:${mods.length?'#f0f4ff':'#fafafa'};border-radius:5px;padding:3px 8px;cursor:pointer;flex-shrink:0;white-space:nowrap;">${modsLabel}</button>
     <button onclick="this.closest('.item-wrapper').remove()" style="background:none;border:none;color:#ccc;font-size:18px;cursor:pointer;padding:0 2px;flex-shrink:0;line-height:1;" onmouseover="this.style.color='#e24b4a'" onmouseout="this.style.color='#ccc'">✕</button>
   </div>
+  ${_dlvPricesHtml(pd,hasDlv)}
   <div class="item-mods" style="display:${mods.length?'block':'none'};">
     ${modsHtml}
     <div style="padding:4px 12px 6px 28px;">
@@ -3251,9 +3367,11 @@ function _menuItemRowNew(){
     <label style="display:flex;align-items:center;gap:5px;font-size:12px;color:#666;cursor:pointer;white-space:nowrap;flex-shrink:0;user-select:none;">
       <input type="checkbox" checked style="cursor:pointer;width:14px;height:14px;"> Activo
     </label>
+    <button onclick="_toggleDlv(this)" style="font-size:11px;color:#aaa;border:1px solid #ddd;background:#fafafa;border-radius:5px;padding:3px 8px;cursor:pointer;flex-shrink:0;white-space:nowrap;">🛵 Delivery</button>
     <button onclick="_toggleMods(this)" style="font-size:11px;color:#aaa;border:1px solid #ddd;background:#fafafa;border-radius:5px;padding:3px 8px;cursor:pointer;flex-shrink:0;white-space:nowrap;">⊕ Mods</button>
     <button onclick="this.closest('.item-wrapper').remove()" style="background:none;border:none;color:#ccc;font-size:18px;cursor:pointer;padding:0 2px;flex-shrink:0;line-height:1;" onmouseover="this.style.color='#e24b4a'" onmouseout="this.style.color='#ccc'">✕</button>
   </div>
+  ${_dlvPricesHtml({},false)}
   <div class="item-mods" style="display:none;">
     <div style="padding:4px 12px 6px 28px;">
       <button onclick="_addModRow(this)" style="font-size:11px;color:#888;border:1px dashed #ccc;background:transparent;border-radius:5px;padding:3px 10px;cursor:pointer;">＋ Modificador</button>
@@ -3295,6 +3413,13 @@ function _leerMenuDesdeEditor(){
       });
       const obj={n:nombre,p:precio,activo};
       if(mods.length)obj.mods=mods;
+      // Leer precios delivery
+      const dlvInputs=wrapper.querySelectorAll('[data-dlv]');
+      if(dlvInputs.length){
+        const pd={};let hasPd=false;
+        dlvInputs.forEach(inp=>{const v=parseFloat(inp.value);if(!isNaN(v)&&inp.value.trim()!==''){pd[inp.dataset.dlv]=v;hasPd=true;}});
+        if(hasPd)obj.pDelivery=pd;
+      }
       items.push(obj);
     });
     categorias[cat]=items;
