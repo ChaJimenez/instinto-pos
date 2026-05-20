@@ -18,11 +18,10 @@ app.use(express.json({
 
 const KEYS = { cmd: 'i:cmd', vta: 'i:vta', mes: 'i:mes', canc: 'i:canc', ts: 'i:lastUpdate' };
 const PIN = process.env.PIN_ADMIN || '1234';
-const API_SECRET = process.env.API_SECRET;
+const API_SECRET = process.env.API_SECRET || 'instinto-pos-2026';
 
-// Middleware de autenticación — solo activo si API_SECRET está configurado en Vercel
+// Middleware de autenticación — activo siempre (configura API_SECRET en Vercel para producción)
 function requireAuth(req, res, next) {
-  if (!API_SECRET) return next();
   if (req.headers['x-api-key'] !== API_SECRET) return res.status(401).json({ error: 'No autorizado' });
   next();
 }
@@ -46,7 +45,13 @@ app.get('/api/datos', async (req, res) => {
 // ── Guardar todos los datos ──
 app.post('/api/guardar', requireAuth, async (req, res) => {
   try {
-    const { cmd, vta, mes, canc } = req.body;
+    const { cmd, vta, mes, canc, ts: clientTs } = req.body;
+    if (clientTs !== undefined && clientTs > 0) {
+      const serverTs = Number(await kv.get(KEYS.ts) || 0);
+      if (serverTs > Number(clientTs) + 1000) {
+        return res.status(409).json({ error: 'conflicto', serverTs });
+      }
+    }
     await Promise.all([
       kv.set(KEYS.cmd, cmd || []),
       kv.set(KEYS.vta, vta || []),
@@ -126,9 +131,9 @@ app.post('/api/imprimir-recibo', requireAuth, async (req, res) => {
 app.get('/api/print-queue', async (req, res) => {
   try {
     const raw = await kv.lrange('i:printjobs', 0, -1);
-    if (raw.length) await kv.del('i:printjobs');
     const jobs = raw.map(j => (typeof j === 'string' ? JSON.parse(j) : j));
     res.json({ jobs });
+    if (raw.length) await kv.del('i:printjobs');
   } catch (e) {
     res.json({ jobs: [] });
   }
@@ -450,7 +455,7 @@ app.post('/api/gastos', async (req, res) => {
   } catch(e) { res.status(500).json({ error: "Error de conexión" }); }
 });
 
-app.delete('/api/gastos/:id', async (req, res) => {
+app.delete('/api/gastos/:id', requireAuth, async (req, res) => {
   try {
     const id = Number(req.params.id);
     const gastos = await kv.get(GASTOS_KEY) || [];
@@ -509,8 +514,7 @@ app.get('/api/reportes', async (req, res) => {
     const horaMap = {};
     filtradas.forEach(v => {
       try {
-        const dMX = new Date(new Date(v.id).toLocaleString('en-US', { timeZone: 'America/Mexico_City' }));
-        const hora = dMX.getHours();
+        const hora = parseInt(new Intl.DateTimeFormat('en-US', { hour: 'numeric', hourCycle: 'h23', timeZone: 'America/Mexico_City' }).format(new Date(v.id)), 10);
         if (!horaMap[hora]) horaMap[hora] = { hora, ventas: 0, total: 0 };
         horaMap[hora].ventas++;
         horaMap[hora].total += v.total || 0;

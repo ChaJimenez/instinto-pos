@@ -414,7 +414,7 @@ body { font-family: system-ui, -apple-system, sans-serif; background: #f5f5f3; m
     <br><br>
 
     <div class="sec">Gerentes autorizadores</div>
-    <p style="font-size:13px;color:#888;margin-bottom:14px;line-height:1.6;">Solo Paco, Tony u Omar pueden autorizar descuentos, cortesías y cancelaciones. Para agregar o cambiar PINs se requiere el PIN de administrador.</p>
+    <p style="font-size:13px;color:#888;margin-bottom:14px;line-height:1.6;">Los gerentes registrados pueden autorizar descuentos, cortesías y cancelaciones. Para agregar o cambiar PINs se requiere el PIN de administrador.</p>
     <div id="gerentesList" style="margin-bottom:12px;"></div>
     <div id="gerentesAgregarForm" style="display:none;background:#f5f5f3;border-radius:10px;padding:14px;margin-bottom:12px;">
       <div style="font-size:13px;font-weight:600;margin-bottom:10px;">Agregar gerente</div>
@@ -843,7 +843,8 @@ body { font-family: system-ui, -apple-system, sans-serif; background: #f5f5f3; m
 <script>
 // ── CONFIGURACIÓN ──
 const PRINT_SERVER = 'http://127.0.0.1:3000';
-const API_KEY = '';
+const API_KEY = 'instinto-pos-2026';
+function esc(s){const d=document.createElement('div');d.textContent=String(s||'');return d.innerHTML;}
 
 let MENU = {
   "Especiales":[{n:"Pollo Crispy PB&J",p:158,activo:true}],
@@ -989,11 +990,12 @@ async function guardar(){
     localStorage.setItem('i_localTs',String(Date.now()));
   }catch(_){}
   try {
-    await fetch('/api/guardar',{
+    const _gResp=await fetch('/api/guardar',{
       method:'POST',
       headers:{'Content-Type':'application/json','X-API-Key':API_KEY},
-      body:JSON.stringify({cmd:comandas,vta:ventas,mes:meseros,canc:cancelaciones})
+      body:JSON.stringify({cmd:comandas,vta:ventas,mes:meseros,canc:cancelaciones,...(ultimaActualizacion>0?{ts:ultimaActualizacion}:{})})
     });
+    if(_gResp.status===409){toast('⚠ Conflicto de sync — recargando datos...');cargarDatos(true);return;}
     // Actualizar marca de tiempo local para que el poll no recargue el estado que acabamos de guardar
     ultimaActualizacion = Date.now();
     setSyncDot(true);
@@ -1035,7 +1037,7 @@ setInterval(async()=>{
     }
     setSyncDot(true);
   }catch(e){setSyncDot(false);}
-},3000);
+},6000);
 
 // ── BACKUP / IMPORTACIÓN ──
 function exportarBackup(){
@@ -1111,7 +1113,7 @@ async function cargarGerentes(){
     const d=await r.json();
     gerentesCache=d.gerentes||[];
   }catch(e){
-    gerentesCache=['Paco','Tony','Omar']; // fallback sin conexión
+    gerentesCache=[];
   }
   _actualizarSelectGerente();
 }
@@ -1383,7 +1385,8 @@ function validarMixto(total){
 function selPropinaM(el,pct){
   document.querySelectorAll('#mixtoSection .propina-btn').forEach(b=>b.classList.remove('sel'));
   el.classList.add('sel');document.getElementById('mixtoPropinaCustom').value='';
-  currentPropina=pct>0?Math.round(currentMixtoTj*pct)/100:0;
+  const tj=currentMixtoTj||parseFloat(document.getElementById('mixtoTarjeta').value)||0;
+  currentPropina=pct>0?Math.round(tj*pct)/100:0;
   document.getElementById('mixtoPropinaDisplay').textContent=currentPropina>0?`Propina: ${fmtProp(currentPropina)} (${pct}%)`:'Sin propina';
 }
 function setPropinaM(val){
@@ -1618,7 +1621,7 @@ function renderMapaMesas(ab){
     return `<div class="mapa-card" onclick="editarComanda(${comanda.id})">
       <div class="mapa-icon ${iconCls}"></div>
       <div class="mapa-num">${mesaId}</div>
-      <div class="mapa-mesero">${comanda.mesero}</div>
+      <div class="mapa-mesero">${esc(comanda.mesero)}</div>
       <div class="mapa-tiempo${demorada?' demorada':''}">${tiempo}</div>
     </div>`;
   }).join('');
@@ -1634,8 +1637,8 @@ function renderMapaMesas(ab){
       const tiempo   = mins < 60 ? mins+'min' : Math.floor(mins/60)+'h'+(mins%60>0?' '+mins%60+'m':'');
       return `<div class="mapa-card" onclick="editarComanda(${c.id})">
         <div class="mapa-icon ${iconCls}"></div>
-        <div class="mapa-num">${c.mesa}</div>
-        <div class="mapa-mesero">${c.mesero}</div>
+        <div class="mapa-num">${esc(c.mesa)}</div>
+        <div class="mapa-mesero">${esc(c.mesero)}</div>
         <div class="mapa-tiempo${demorada?' demorada':''}">${tiempo}</div>
       </div>`;
     }).join('');
@@ -1655,8 +1658,8 @@ function renderMapaMesas(ab){
       const cliente = c.delivery?.customer?.name || '';
       return `<div class="mapa-card" onclick="editarComanda(${c.id})">
         <div class="mapa-icon delivery"></div>
-        <div class="mapa-num" style="font-size:11px;line-height:1.3;">${c.mesa}</div>
-        ${cliente?`<div class="mapa-mesero">${cliente}</div>`:''}
+        <div class="mapa-num" style="font-size:11px;line-height:1.3;">${esc(c.mesa)}</div>
+        ${cliente?`<div class="mapa-mesero">${esc(cliente)}</div>`:''}
         <div class="mapa-tiempo">${tiempo}</div>
       </div>`;
     }).join('');
@@ -1845,12 +1848,12 @@ function editarComanda(id){
   const banner = document.getElementById('editingBanner');
   if (c.delivery) {
     const dlv = c.delivery;
-    const cliente = dlv.customer?.name ? `👤 ${dlv.customer.name}` : '';
-    const telefono = dlv.customer?.phone ? ` · ${dlv.customer.phone}` : '';
+    const cliente = dlv.customer?.name ? `👤 ${esc(dlv.customer.name)}` : '';
+    const telefono = dlv.customer?.phone ? ` · ${esc(dlv.customer.phone)}` : '';
     const tipo = dlv.orderType === 'pickup' ? '🏃 Pickup' : '🛵 Domicilio';
     const pago = dlv.paymentType === 'online' ? '💳 Pagado online' : '💵 Contra entrega';
-    const notas = dlv.notes ? ` · 📝 "${dlv.notes}"` : '';
-    banner.innerHTML = `🛵 <strong>${dlv.channelLabel||'Delivery'} ${c.mesa}</strong> · ${tipo} · ${pago}${cliente?' · '+cliente:''}${telefono}${notas}`;
+    const notas = dlv.notes ? ` · 📝 "${esc(dlv.notes)}"` : '';
+    banner.innerHTML = `🛵 <strong>${esc(dlv.channelLabel||'Delivery')} ${esc(c.mesa)}</strong> · ${tipo} · ${pago}${cliente?' · '+cliente:''}${telefono}${notas}`;
     banner.style.background = '#ede9fe';
     banner.style.borderColor = '#6366f1';
     banner.style.color = '#4338ca';
@@ -1939,7 +1942,8 @@ function validarMixtoModal(total){
 function selPropinaMMod(el,pct){
   document.querySelectorAll('#modalMixtoSection .propina-btn').forEach(b=>b.classList.remove('sel'));
   el.classList.add('sel');document.getElementById('modalMixtoPropinaCustom').value='';
-  modalPropina=pct>0?Math.round(modalMixtoTj*pct)/100:0;
+  const tj=modalMixtoTj||parseFloat(document.getElementById('modalMixtoTarjeta').value)||0;
+  modalPropina=pct>0?Math.round(tj*pct)/100:0;
   document.getElementById('modalMixtoPropinaDisplay').textContent=modalPropina>0?`Propina: ${fmtProp(modalPropina)} (${pct}%)`:'Sin propina';
 }
 function setPropinaMMod(val){

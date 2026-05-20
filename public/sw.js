@@ -43,7 +43,9 @@ self.addEventListener('fetch', e => {
     return;
   }
 
-  // Navegación (HTML): cache primero con actualización en background (stale-while-revalidate)
+  // Navegación (HTML): cache primero (responde inmediato) + actualiza en background.
+  // NOTA: un deploy nuevo tarda 1 recarga en llegar — primera carga sirve cache viejo,
+  // segunda ya tiene el HTML actualizado. Comportamiento esperado, no bug.
   if (e.request.mode === 'navigate') {
     e.respondWith(
       caches.open(CACHE).then(cache =>
