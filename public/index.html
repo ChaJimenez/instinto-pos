@@ -302,6 +302,7 @@ body { font-family: system-ui, -apple-system, sans-serif; background: #f5f5f3; m
       <div class="ticket-total"><span>Total cobrable</span><span id="ticketTotal">$0</span></div>
     </div>
     <br>
+    <div id="pagoSection">
     <div class="sec">Forma de pago</div>
     <div class="pago-opts">
       <div class="pago-opt sel" id="pagoEfectivo" onclick="selPago(this,'Efectivo')">💵 Efectivo</div>
@@ -341,6 +342,11 @@ body { font-family: system-ui, -apple-system, sans-serif; background: #f5f5f3; m
       </div>
       <div id="propinaDisplay" style="font-size:14px;color:#2d7a2d;margin-bottom:10px;font-weight:500;"></div>
     </div>
+    </div><!-- /pagoSection -->
+    <div id="deliveryPayNotice" style="display:none;padding:12px 14px;background:#f0fdf4;border:1px solid #86efac;border-radius:10px;margin-bottom:12px;">
+      <div style="font-size:13px;font-weight:600;color:#15803d;">✓ Pago gestionado por la app</div>
+      <div style="font-size:12px;color:#16a34a;margin-top:2px;">La transferencia llega los lunes. La venta queda registrada en el reporte.</div>
+    </div>
   </div>
   <div class="sec">Descuento</div>
   <div style="display:flex;gap:8px;margin-bottom:8px;flex-wrap:wrap;">
@@ -353,7 +359,7 @@ body { font-family: system-ui, -apple-system, sans-serif; background: #f5f5f3; m
   </div>
   <div id="descDisplay" style="font-size:14px;color:#b06800;margin-bottom:10px;font-weight:500;"></div>
   <button class="btn btn-outline" onclick="saveComanda()">Guardar como abierta</button>
-  <button class="btn btn-dark" onclick="cobrarComanda()">Cobrar y cerrar mesa</button>
+  <button class="btn btn-dark" id="btnCobrar" onclick="cobrarComanda()">Cobrar y cerrar mesa</button>
 </div>
 
 <!-- ABIERTAS -->
@@ -1283,9 +1289,16 @@ function _updateCanalUI(){
     document.getElementById('deliveryApps').classList.add('open');
   }
 }
+function _updatePagoVisibility(){
+  const esDelivery=!!currentCanal;
+  document.getElementById('pagoSection').style.display=esDelivery?'none':'';
+  document.getElementById('deliveryPayNotice').style.display=esDelivery?'':'none';
+  document.getElementById('btnCobrar').textContent=esDelivery?'Cerrar pedido delivery':'Cobrar y cerrar mesa';
+}
 function setCanal(canal){
   currentCanal=canal;
   _updateCanalUI();
+  _updatePagoVisibility();
   if(!canal)document.getElementById('deliveryApps').classList.remove('open');
   // Refrescar precios del menú visible
   const activeCat=document.querySelector('.cat-btn.active')?.textContent;
@@ -1650,10 +1663,11 @@ function saveComanda(){
 
 function cobrarComanda(){
   if(!validar())return;
-  if(currentPago==='Mixto'&&Math.abs(currentMixtoEf+currentMixtoTj-totales().cobrable)>=1){toast('⚠ Efectivo + Tarjeta debe sumar $'+totales().cobrable.toLocaleString());return;}
+  if(!currentCanal&&currentPago==='Mixto'&&Math.abs(currentMixtoEf+currentMixtoTj-totales().cobrable)>=1){toast('⚠ Efectivo + Tarjeta debe sumar $'+totales().cobrable.toLocaleString());return;}
   const doCobrar=(gerente)=>{
     guardarCancelacionesItems();
-    const pagoStr=currentPago==='Mixto'?`Mixto ($${currentMixtoEf.toLocaleString()} ef / $${currentMixtoTj.toLocaleString()} tj)`:currentPago;
+    const _canalLabels={uber:'Uber Eats',rappi:'Rappi',didi:'DiDi Food'};
+    const pagoStr=currentCanal?_canalLabels[currentCanal]:(currentPago==='Mixto'?`Mixto ($${currentMixtoEf.toLocaleString()} ef / $${currentMixtoTj.toLocaleString()} tj)`:currentPago);
     const descConAuth=currentDescuento.tipo?{...currentDescuento,autorizadoPor:gerente}:null;
     const esNueva=!editandoId; // si no venía de una comanda guardada, la cocina aún no recibió el ticket
     const c={...buildComanda('cerrada'),pago:pagoStr,propina:currentPropina,...(gerente?{autorizadoPor:gerente}:{})};
@@ -1697,7 +1711,7 @@ function guardarCancelacionesItems(){
 function resetForm(){
   document.getElementById('mesa').value='';document.getElementById('meseroSel').value='';
   currentItems=[];currentPago='Efectivo';currentPropina=0;currentMixtoEf=0;currentMixtoTj=0;editandoId=null;
-  currentCanal=null;document.getElementById('deliveryApps').classList.remove('open');_updateCanalUI();
+  currentCanal=null;document.getElementById('deliveryApps').classList.remove('open');_updateCanalUI();_updatePagoVisibility();
   const activeCat=document.querySelector('.cat-btn.active')?.textContent;if(activeCat)renderPlatillos(activeCat);
   document.querySelectorAll('#screen-nueva .pago-opt').forEach((e,i)=>e.classList.toggle('sel',i===0));
   document.getElementById('propinaSection').style.display='none';
@@ -1984,6 +1998,7 @@ function editarComanda(id){
   // Restaurar canal antes de render
   currentCanal=c.canal||null;
   _updateCanalUI();
+  _updatePagoVisibility();
   if(!currentCanal)document.getElementById('deliveryApps').classList.remove('open');
   document.getElementById('mesa').value=c.mesa;renderMeseroSelect();document.getElementById('meseroSel').value=c.mesero;
   currentItems=JSON.parse(JSON.stringify(c.items));currentPago='Efectivo';currentPropina=0;editandoId=id;
