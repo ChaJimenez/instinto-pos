@@ -432,9 +432,12 @@ body { font-family: system-ui, -apple-system, sans-serif; background: #f5f5f3; m
 <!-- CONFIG -->
 <div id="screen-config" class="screen">
   <!-- Sub-nav config -->
-  <div style="display:flex;gap:6px;margin-bottom:20px;border-bottom:1px solid #e8e8e8;padding-bottom:0;">
+  <div style="display:flex;gap:0;margin-bottom:20px;border-bottom:1px solid #e8e8e8;padding-bottom:0;overflow-x:auto;scrollbar-width:none;">
     <button id="ctab-equipo" class="ctab ctab-active" onclick="switchConfig('equipo')">👥 Equipo</button>
-    <button id="ctab-menu" class="ctab" onclick="switchConfig('menu')">🍔 Menú</button>
+    <button id="ctab-menu" class="ctab" onclick="switchConfig('menu')">🍔 Menú base</button>
+    <button id="ctab-uber" class="ctab" onclick="switchConfig('uber')" style="color:#555;">⬛ Uber Eats</button>
+    <button id="ctab-rappi" class="ctab" onclick="switchConfig('rappi')" style="color:#ff441b;">🛵 Rappi</button>
+    <button id="ctab-didi" class="ctab" onclick="switchConfig('didi')" style="color:#f87000;">🛵 DiDi Food</button>
   </div>
 
   <!-- SECCIÓN: EQUIPO -->
@@ -488,6 +491,45 @@ body { font-family: system-ui, -apple-system, sans-serif; background: #f5f5f3; m
       <button class="btn btn-outline btn-sm" onclick="addMenuCat()" style="color:#0D2A5E;border-color:#0D2A5E;">＋ Categoría</button>
     </div>
     <div id="menuEditorMsg" style="margin-top:10px;font-size:13px;min-height:18px;font-weight:500;"></div>
+  </div>
+
+  <!-- SECCIÓN: UBER EATS -->
+  <div id="config-uber" style="display:none;">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;flex-wrap:wrap;gap:10px;">
+      <div>
+        <div style="font-size:14px;font-weight:700;color:#1a1a1a;">⬛ Precios Uber Eats</div>
+        <div style="font-size:12px;color:#aaa;margin-top:2px;">Deja vacío para usar el precio base del restaurante</div>
+      </div>
+      <button class="btn btn-dark btn-sm" onclick="guardarMenuDelivery('uber')" style="background:#1a1a1a;">💾 Guardar precios Uber</button>
+    </div>
+    <div id="deliveryEditorUber"></div>
+    <div id="deliveryMsgUber" style="margin-top:10px;font-size:13px;min-height:18px;font-weight:500;"></div>
+  </div>
+
+  <!-- SECCIÓN: RAPPI -->
+  <div id="config-rappi" style="display:none;">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;flex-wrap:wrap;gap:10px;">
+      <div>
+        <div style="font-size:14px;font-weight:700;color:#ff441b;">🛵 Precios Rappi</div>
+        <div style="font-size:12px;color:#aaa;margin-top:2px;">Deja vacío para usar el precio base del restaurante</div>
+      </div>
+      <button class="btn btn-dark btn-sm" onclick="guardarMenuDelivery('rappi')" style="background:#ff441b;">💾 Guardar precios Rappi</button>
+    </div>
+    <div id="deliveryEditorRappi"></div>
+    <div id="deliveryMsgRappi" style="margin-top:10px;font-size:13px;min-height:18px;font-weight:500;"></div>
+  </div>
+
+  <!-- SECCIÓN: DIDI FOOD -->
+  <div id="config-didi" style="display:none;">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;flex-wrap:wrap;gap:10px;">
+      <div>
+        <div style="font-size:14px;font-weight:700;color:#f87000;">🛵 Precios DiDi Food</div>
+        <div style="font-size:12px;color:#aaa;margin-top:2px;">Deja vacío para usar el precio base del restaurante</div>
+      </div>
+      <button class="btn btn-dark btn-sm" onclick="guardarMenuDelivery('didi')" style="background:#f87000;">💾 Guardar precios DiDi</button>
+    </div>
+    <div id="deliveryEditorDidi"></div>
+    <div id="deliveryMsgDidi" style="margin-top:10px;font-size:13px;min-height:18px;font-weight:500;"></div>
   </div>
 </div>
 
@@ -3286,7 +3328,6 @@ function _menuItemRow(catId,it,idx){
     </div>`;
   }).join('');
   const modsLabel=mods.length?`Mods (${mods.length})`:'⊕ Mods';
-  const dlvLabel=hasDlv?'🛵 Delivery ✓':'🛵 Delivery';
   return`<div class="item-wrapper">
   <div style="display:flex;align-items:center;gap:8px;padding:7px 12px;border-bottom:1px solid #f5f5f5;background:${activo?'#fff':'#fafafa'};">
     <input type="text" value="${nm}" placeholder="Nombre del ítem" style="flex:1;padding:6px 10px;border:1px solid #e0e0e0;border-radius:6px;font-size:13px;outline:none;min-width:0;" onfocus="this.style.borderColor='#0D2A5E'" onblur="this.style.borderColor='#e0e0e0'">
@@ -3295,11 +3336,9 @@ function _menuItemRow(catId,it,idx){
     <label style="display:flex;align-items:center;gap:5px;font-size:12px;color:#666;cursor:pointer;white-space:nowrap;flex-shrink:0;user-select:none;">
       <input type="checkbox" ${activo?'checked':''} style="cursor:pointer;width:14px;height:14px;"> Activo
     </label>
-    <button onclick="_toggleDlv(this)" style="font-size:11px;color:${hasDlv?'#b06800':'#aaa'};border:1px solid ${hasDlv?'#b06800':'#ddd'};background:${hasDlv?'#fffbf0':'#fafafa'};border-radius:5px;padding:3px 8px;cursor:pointer;flex-shrink:0;white-space:nowrap;">${dlvLabel}</button>
     <button onclick="_toggleMods(this)" style="font-size:11px;color:${mods.length?'#0D2A5E':'#aaa'};border:1px solid ${mods.length?'#0D2A5E':'#ddd'};background:${mods.length?'#f0f4ff':'#fafafa'};border-radius:5px;padding:3px 8px;cursor:pointer;flex-shrink:0;white-space:nowrap;">${modsLabel}</button>
     <button onclick="this.closest('.item-wrapper').remove()" style="background:none;border:none;color:#ccc;font-size:18px;cursor:pointer;padding:0 2px;flex-shrink:0;line-height:1;" onmouseover="this.style.color='#e24b4a'" onmouseout="this.style.color='#ccc'">✕</button>
   </div>
-  ${_dlvPricesHtml(pd,hasDlv)}
   <div class="item-mods" style="display:${mods.length?'block':'none'};">
     ${modsHtml}
     <div style="padding:4px 12px 6px 28px;">
@@ -3367,11 +3406,9 @@ function _menuItemRowNew(){
     <label style="display:flex;align-items:center;gap:5px;font-size:12px;color:#666;cursor:pointer;white-space:nowrap;flex-shrink:0;user-select:none;">
       <input type="checkbox" checked style="cursor:pointer;width:14px;height:14px;"> Activo
     </label>
-    <button onclick="_toggleDlv(this)" style="font-size:11px;color:#aaa;border:1px solid #ddd;background:#fafafa;border-radius:5px;padding:3px 8px;cursor:pointer;flex-shrink:0;white-space:nowrap;">🛵 Delivery</button>
     <button onclick="_toggleMods(this)" style="font-size:11px;color:#aaa;border:1px solid #ddd;background:#fafafa;border-radius:5px;padding:3px 8px;cursor:pointer;flex-shrink:0;white-space:nowrap;">⊕ Mods</button>
     <button onclick="this.closest('.item-wrapper').remove()" style="background:none;border:none;color:#ccc;font-size:18px;cursor:pointer;padding:0 2px;flex-shrink:0;line-height:1;" onmouseover="this.style.color='#e24b4a'" onmouseout="this.style.color='#ccc'">✕</button>
   </div>
-  ${_dlvPricesHtml({},false)}
   <div class="item-mods" style="display:none;">
     <div style="padding:4px 12px 6px 28px;">
       <button onclick="_addModRow(this)" style="font-size:11px;color:#888;border:1px dashed #ccc;background:transparent;border-radius:5px;padding:3px 10px;cursor:pointer;">＋ Modificador</button>
@@ -3505,6 +3542,77 @@ function guardarMenuAdmin(){
     btn.disabled=false;btn.textContent='💾 Guardar cambios';
   });
 }
+// ── EDITOR DE PRECIOS DELIVERY (por canal) ──
+const _CANAL_META={
+  uber:{label:'Uber Eats',color:'#1a1a1a',bg:'#f5f5f3'},
+  rappi:{label:'Rappi',color:'#ff441b',bg:'#fff5f3'},
+  didi:{label:'DiDi Food',color:'#f87000',bg:'#fff8f0'}
+};
+function renderDeliveryMenuEditor(canal){
+  const meta=_CANAL_META[canal];
+  const containerId='deliveryEditor'+canal.charAt(0).toUpperCase()+canal.slice(1);
+  let html='';
+  Object.keys(MENU).forEach(cat=>{
+    const items=MENU[cat].filter(it=>it.activo!==false);
+    if(!items.length)return;
+    const rows=items.map((it,i)=>{
+      const dlvPrice=it.pDelivery&&it.pDelivery[canal]!=null?it.pDelivery[canal]:'';
+      return`<div style="display:flex;align-items:center;gap:10px;padding:9px 14px;border-bottom:1px solid #f5f5f5;background:#fff;">
+        <span style="flex:1;font-size:13px;font-weight:500;color:#1a1a1a;">${it.n}</span>
+        <span style="font-size:12px;color:#bbb;">Base $${it.p}</span>
+        <span style="font-size:13px;color:#aaa;flex-shrink:0;">$</span>
+        <input type="number" data-cat="${cat.replace(/"/g,'&quot;')}" data-idx="${i}" value="${dlvPrice}" placeholder="${it.p}" min="0" step="1"
+          style="width:90px;padding:6px 8px;border:1px solid #e0e0e0;border-radius:6px;font-size:13px;outline:none;text-align:right;"
+          onfocus="this.style.borderColor='${meta.color}'" onblur="this.style.borderColor='#e0e0e0'">
+      </div>`;
+    }).join('');
+    html+=`<div style="margin-bottom:14px;border:1px solid #e8e8e8;border-radius:10px;overflow:hidden;">
+      <div style="background:${meta.bg};padding:8px 14px;border-bottom:1px solid #e8e8e8;">
+        <span style="font-size:12px;font-weight:700;color:${meta.color};text-transform:uppercase;letter-spacing:.06em;">${cat}</span>
+      </div>
+      ${rows}
+    </div>`;
+  });
+  document.getElementById(containerId).innerHTML=html||'<div class="empty">No hay productos activos en el menú base.</div>';
+}
+function guardarMenuDelivery(canal){
+  const meta=_CANAL_META[canal];
+  const containerId='deliveryEditor'+canal.charAt(0).toUpperCase()+canal.slice(1);
+  const msgId='deliveryMsg'+canal.charAt(0).toUpperCase()+canal.slice(1);
+  const msg=document.getElementById(msgId);
+  // Leer todos los inputs y actualizar MENU en memoria
+  document.querySelectorAll(`#${containerId} input[data-cat]`).forEach(inp=>{
+    const cat=inp.dataset.cat;
+    const idx=parseInt(inp.dataset.idx);
+    // Buscar el ítem real en MENU (índice puede no coincidir si hay inactivos, buscar por nombre)
+    const nombre=inp.closest('div[style]')?.querySelector('span')?.textContent;
+    const item=MENU[cat]?.find(it=>it.n===nombre);
+    if(!item)return;
+    const val=inp.value.trim();
+    if(!item.pDelivery)item.pDelivery={};
+    if(val===''||isNaN(parseFloat(val))){
+      delete item.pDelivery[canal];
+      if(!Object.keys(item.pDelivery).length)delete item.pDelivery;
+    }else{
+      item.pDelivery[canal]=parseFloat(val);
+    }
+  });
+  pedirPin(`Guardar precios ${meta.label}`,'Ingresa el PIN de administrador',async(pin)=>{
+    msg.style.color='#888';msg.textContent='Guardando...';
+    try{
+      const r=await fetch('/api/menu',{method:'POST',headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({pin,categorias:MENU,extras:EXTRAS,log86:[]})});
+      const d=await r.json();
+      if(d.ok){
+        msg.style.color='#2d7a2d';
+        msg.textContent=`✓ Precios ${meta.label} guardados en todos los dispositivos.`;
+        if(currentCanal===canal){const ac=document.querySelector('.cat-btn.active')?.textContent;if(ac)renderPlatillos(ac);}
+      }else{msg.style.color='#e24b4a';msg.textContent=d.error||'Error al guardar';}
+    }catch(e){msg.style.color='#e24b4a';msg.textContent='Error de conexión — reintenta';}
+    setTimeout(()=>{if(msg)msg.textContent='';},5000);
+  });
+}
+
 function togglePanel86(){
   const card=document.getElementById('admin86Card');
   const open=card.style.display!=='none';
@@ -4077,12 +4185,15 @@ function eliminarMesero(i){
 
 // ── NAV ──
 function switchConfig(section){
-  ['equipo','menu'].forEach(s=>{
-    document.getElementById('ctab-'+s).classList.toggle('ctab-active',s===section);
-    document.getElementById('config-'+s).style.display=s===section?'':'none';
+  ['equipo','menu','uber','rappi','didi'].forEach(s=>{
+    const tab=document.getElementById('ctab-'+s);
+    const sec=document.getElementById('config-'+s);
+    if(tab)tab.classList.toggle('ctab-active',s===section);
+    if(sec)sec.style.display=s===section?'':'none';
   });
   if(section==='equipo'){renderMeseroConfig();renderGerenteConfig();}
   if(section==='menu'){renderMenuEditor();}
+  if(['uber','rappi','didi'].includes(section)){renderDeliveryMenuEditor(section);}
 }
 
 function switchTab(tab){
