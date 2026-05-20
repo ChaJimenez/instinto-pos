@@ -467,6 +467,16 @@ body { font-family: system-ui, -apple-system, sans-serif; background: #f5f5f3; m
     <button class="btn btn-outline btn-sm" onclick="iniciarAgregarGerente()" style="border-color:#0D2A5E;color:#0D2A5E;">+ Agregar gerente</button>
     <br><br>
 
+    <div class="sec">Prueba de impresoras</div>
+    <p style="font-size:13px;color:#888;margin-bottom:12px;">Envía un ticket de prueba a cada impresora para verificar que responde correctamente.</p>
+    <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:8px;">
+      <button class="btn btn-outline btn-sm" onclick="testPrint('cocina')" style="color:#0D2A5E;border-color:#0D2A5E;">🖨 Probar Cocina</button>
+      <button class="btn btn-outline btn-sm" onclick="testPrint('barra')"  style="color:#F5A020;border-color:#F5A020;">🖨 Probar Barra</button>
+      <button class="btn btn-outline btn-sm" onclick="testPrint('recibo')" style="color:#333;border-color:#333;">🖨 Probar Caja</button>
+    </div>
+    <div id="testPrintMsg" style="font-size:13px;min-height:16px;color:#666;"></div>
+    <br>
+
     <div class="sec">Respaldo de datos</div>
     <p style="font-size:13px;color:#888;margin-bottom:12px;">Exporta todos los datos para migración o respaldo. Importa el JSON del sistema anterior.</p>
     <div style="display:flex;gap:10px;flex-wrap:wrap;">
@@ -1115,6 +1125,18 @@ setInterval(async()=>{
     setSyncDot(true);
   }catch(e){setSyncDot(false);}
 },6000);
+
+// ── PRUEBA DE IMPRESORAS ──
+async function testPrint(destino){
+  const msg=document.getElementById('testPrintMsg');
+  msg.textContent='Enviando prueba a '+destino+'...';
+  try{
+    const r=await fetch('/api/test-print',{method:'POST',headers:{'Content-Type':'application/json','X-API-Key':API_KEY},body:JSON.stringify({destino})});
+    const d=await r.json();
+    if(r.ok&&d.ok){msg.style.color='#1a7a3a';msg.textContent='✓ Trabajo enviado — el ticket debe salir en '+destino+' en ~2s';}
+    else{msg.style.color='#c0392b';msg.textContent='✗ Error: '+JSON.stringify(d);}
+  }catch(e){msg.style.color='#c0392b';msg.textContent='✗ Sin conexión con el servidor';}
+}
 
 // ── BACKUP / IMPORTACIÓN ──
 function exportarBackup(){

@@ -141,6 +141,26 @@ app.get('/api/print-queue', async (req, res) => {
   }
 });
 
+// ── Test print — envía ticket de prueba a una impresora ──
+app.post('/api/test-print', requireAuth, async (req, res) => {
+  try {
+    const { destino } = req.body;
+    if (!['cocina','barra','recibo'].includes(destino)) return res.status(400).json({ error: 'destino inválido' });
+    const ts = Date.now();
+    let job;
+    if (destino === 'recibo') {
+      job = { id: ts+'t', destino: 'recibo', mesa: 'TEST', mesero: 'Prueba', hora: new Date().toLocaleTimeString('es-MX',{hour:'2-digit',minute:'2-digit'}), fecha: new Date().toLocaleDateString('es-MX'), items: [{n:'Prueba impresora',p:100,q:1,cancelado:false}], total: 100, cortesias: 0, pago: 'Efectivo', propina: 0, preview: false, ts };
+    } else {
+      job = { id: ts+'t', destino, mesa: 'TEST', mesero: 'Prueba', hora: new Date().toLocaleTimeString('es-MX',{hour:'2-digit',minute:'2-digit'}), items: [{n:'Prueba impresora '+destino,q:1}], ts };
+    }
+    await kv.rpush('i:printjobs', JSON.stringify(job));
+    res.json({ ok: true });
+  } catch (e) {
+    console.error('Error /api/test-print:', e);
+    res.status(500).json({ error: 'Error de conexión' });
+  }
+});
+
 // ── Re-encolar jobs que fallaron al imprimir ──
 app.post('/api/requeue', requireAuth, async (req, res) => {
   try {
