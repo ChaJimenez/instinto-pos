@@ -133,7 +133,9 @@ app.get('/api/print-queue', async (req, res) => {
     const raw = await kv.lrange('i:printjobs', 0, -1);
     const jobs = raw.map(j => (typeof j === 'string' ? JSON.parse(j) : j));
     res.json({ jobs });
-    if (raw.length) await kv.del('i:printjobs');
+    // ltrim mantiene solo los elementos DESPUÉS de los que leímos,
+    // evitando borrar jobs nuevos encolados mientras procesamos
+    if (raw.length) await kv.ltrim('i:printjobs', raw.length, -1);
   } catch (e) {
     res.json({ jobs: [] });
   }

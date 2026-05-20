@@ -9,6 +9,7 @@
 const net = require('net');
 
 const API_BASE = 'https://instinto-sistema-cobranza.vercel.app';
+const API_KEY  = 'instinto-pos-2026';
 
 const PRINTERS = {
   cocina: { host: '192.168.1.71', port: 9100 },
@@ -134,7 +135,7 @@ async function poll() {
       try {
         await fetch(API_BASE + '/api/requeue', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: { 'Content-Type': 'application/json', 'X-API-Key': API_KEY },
           body: JSON.stringify({ jobs: failed })
         });
         console.warn('🔄 Re-encolados ' + failed.length + ' job(s) fallidos — se reintentará');
