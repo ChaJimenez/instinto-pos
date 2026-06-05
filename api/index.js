@@ -113,31 +113,10 @@ const BARRA_CATS = ['Refrescos', 'Cervezas', 'Cervezas Artesanales', 'Preparados
 
 app.post('/api/imprimir', requireAuth, async (req, res) => {
   try {
-    const { mesa, mesero, items = [], hora, comandaId } = req.body;
+    const { mesa, mesero, items = [], hora } = req.body;
 
-    // Filtro 1: eliminar cancelados e ítems ya marcados como impresos por el cliente
-    let activos = items.filter(it => !it.cancelado && !it._impreso);
-
-    // Filtro 2 (server-side): si viene comandaId, deduplicar usando el historial en Redis
-    if (comandaId) {
-      const printedKey = 'i:printed:' + comandaId;
-      const prevPrinted = (await kv.get(printedKey)) || {};
-
-      // Solo pasan ítems cuya cantidad supere lo ya impreso
-      activos = activos.reduce((a, it) => {
-        const prevQ = prevPrinted[it.n] || 0;
-        const delta = it.q - prevQ;
-        if (delta > 0) a.push({ ...it, q: delta });
-        return a;
-      }, []);
-
-      // Actualizar historial con lo que efectivamente se va a imprimir
-      if (activos.length) {
-        const newPrinted = { ...prevPrinted };
-        activos.forEach(it => { newPrinted[it.n] = (newPrinted[it.n] || 0) + it.q; });
-        await kv.set(printedKey, newPrinted, { ex: 86400 }); // TTL 24h
-      }
-    }
+    // El cliente ya envía solo los ítems nuevos (delta via _impresosQ)
+    const activos = items.filter(it => !it.cancelado);
 
     const cocina = activos.filter(it => !BARRA_CATS.includes(it.cat));
     const barra  = activos.filter(it =>  BARRA_CATS.includes(it.cat));

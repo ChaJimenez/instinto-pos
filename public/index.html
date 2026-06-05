@@ -1714,11 +1714,13 @@ function saveComanda(){
   if(!validar())return;
   const doSave=(gerente)=>{
     guardarCancelacionesItems();
+    const nuevos=currentItems.filter(it=>!it.cancelado).reduce((a,it)=>{const pq=it._impresosQ??0;if(it.q>pq)a.push({...it,q:it.q-pq});return a;},[]);
+    currentItems.forEach(it=>{if(!it.cancelado)it._impresosQ=it.q;});
     const comanda={...buildComanda('abierta'),...(gerente?{autorizadoPor:gerente}:{})};
     if(editandoId)comandas=comandas.filter(x=>x.id!==editandoId);
     comandas.push(comanda);
     editandoId=null;guardar();
-    enviarImpresion(comanda);
+    if(nuevos.length)enviarImpresion({...comanda,items:nuevos});
     resetForm();toast('Comanda guardada ✓');switchTab('abiertas');
   };
   if(tieneRestriccion()){
@@ -1741,11 +1743,13 @@ function cobrarComanda(){
     const _canalLabels={uber:'Uber Eats',rappi:'Rappi',didi:'DiDi Food'};
     const pagoStr=currentCanal?_canalLabels[currentCanal]:(currentPago==='Mixto'?`Mixto ($${currentMixtoEf.toLocaleString()} ef / $${currentMixtoTj.toLocaleString()} ${currentMixtoTipo.toLowerCase()})`:currentPago);
     const descConAuth=currentDescuento.tipo?{...currentDescuento,autorizadoPor:gerente}:null;
+    const nuevos=currentItems.filter(it=>!it.cancelado).reduce((a,it)=>{const pq=it._impresosQ??0;if(it.q>pq)a.push({...it,q:it.q-pq});return a;},[]);
+    currentItems.forEach(it=>{if(!it.cancelado)it._impresosQ=it.q;});
     const c={...buildComanda('cerrada'),pago:pagoStr,propina:currentPropina,...(gerente?{autorizadoPor:gerente}:{})};
     if(descConAuth)c.descuento=descConAuth;
     if(editandoId)comandas=comandas.filter(x=>x.id!==editandoId);
     ventas.push(c);editandoId=null;guardar();
-    enviarImpresion(c);
+    if(nuevos.length)enviarImpresion({...c,items:nuevos});
     enviarRecibo(c);
     resetForm();toast('Venta registrada ✓');switchTab('reporte');
   };
@@ -2073,7 +2077,7 @@ function editarComanda(id){
   _updatePagoVisibility();
   if(!currentCanal)document.getElementById('deliveryApps').classList.remove('open');
   document.getElementById('mesa').value=c.mesa;renderMeseroSelect();document.getElementById('meseroSel').value=c.mesero;
-  currentItems=JSON.parse(JSON.stringify(c.items));currentPago='Efectivo';currentPropina=0;editandoId=id;
+  currentItems=JSON.parse(JSON.stringify(c.items)).map(it=>({...it,_impresosQ:it._impresosQ??it.q}));currentPago='Efectivo';currentPropina=0;editandoId=id;
   // Restaurar descuento
   currentDescuento=c.descuento?{tipo:c.descuento.tipo,pct:c.descuento.pct||0,valor:c.descuento.valor||0}:{tipo:null,pct:0,valor:0};
   document.querySelectorAll('#screen-nueva .pago-opt[onclick^="selDesc"]').forEach(el=>{
