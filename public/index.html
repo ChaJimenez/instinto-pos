@@ -80,7 +80,9 @@ body { font-family: system-ui, -apple-system, sans-serif; background: #f5f5f3; m
 .btn-amber:hover { background: #fff8ed; }
 .btn-sm { width: auto; padding: 7px 14px; font-size: 13px; margin: 0; }
 .btn:active { transform: scale(0.98); }
-.pago-opts { display: flex; gap: 10px; margin-bottom: 14px; }
+.pago-opts { display: flex; gap: 8px; margin-bottom: 14px; flex-wrap: wrap; }
+.mixto-card-btn { flex:1; padding:6px 4px; border:1px solid #ddd; border-radius:7px; text-align:center; cursor:pointer; font-size:12px; background:#fff; color:#555; }
+.mixto-card-btn.sel { background:#1a1a1a; color:#fff; border-color:#1a1a1a; font-weight:500; }
 .pago-opt { flex: 1; padding: 12px 4px; border: 1px solid #ddd; border-radius: 9px; text-align: center; cursor: pointer; font-size: 14px; background: #fff; color: #555; transition: all 0.15s; }
 .pago-opt.sel { background: #1a1a1a; color: #fff; border-color: #1a1a1a; font-weight: 500; }
 .propina-row { display: flex; gap: 8px; margin-bottom: 12px; align-items: center; }
@@ -306,7 +308,9 @@ body { font-family: system-ui, -apple-system, sans-serif; background: #f5f5f3; m
     <div class="sec">Forma de pago</div>
     <div class="pago-opts">
       <div class="pago-opt sel" id="pagoEfectivo" onclick="selPago(this,'Efectivo')">💵 Efectivo</div>
-      <div class="pago-opt" id="pagoTarjeta" onclick="selPago(this,'Tarjeta')">💳 Tarjeta</div>
+      <div class="pago-opt" id="pagoDebito" onclick="selPago(this,'Débito')">💳 Débito</div>
+      <div class="pago-opt" id="pagoCredito" onclick="selPago(this,'Crédito')">💳 Crédito</div>
+      <div class="pago-opt" id="pagoAmex" onclick="selPago(this,'Amex')">🟣 Amex</div>
       <div class="pago-opt" id="pagoMixto" onclick="selPago(this,'Mixto')">🔀 Mixto</div>
     </div>
     <div id="mixtoSection" style="display:none;margin-bottom:12px;">
@@ -316,7 +320,11 @@ body { font-family: system-ui, -apple-system, sans-serif; background: #f5f5f3; m
           <input type="number" id="mixtoEfectivo" placeholder="$0" min="0" oninput="calcMixtoDesdeEf()" style="width:100%;padding:9px 13px;border:1px solid #ddd;border-radius:8px;font-size:15px;outline:none;" />
         </div>
         <div style="flex:1;">
-          <div class="sec" style="margin-bottom:6px;">💳 Tarjeta</div>
+          <div style="display:flex;gap:6px;margin-bottom:6px;">
+            <button class="mixto-card-btn sel" id="mxTipoDebito" onclick="selMixtoTipo(this,'Débito')">Débito</button>
+            <button class="mixto-card-btn" id="mxTipoCredito" onclick="selMixtoTipo(this,'Crédito')">Crédito</button>
+            <button class="mixto-card-btn" id="mxTipoAmex" onclick="selMixtoTipo(this,'Amex')">Amex</button>
+          </div>
           <input type="number" id="mixtoTarjeta" placeholder="$0" min="0" oninput="calcMixtoDesdeT()" style="width:100%;padding:9px 13px;border:1px solid #ddd;border-radius:8px;font-size:15px;outline:none;" />
         </div>
       </div>
@@ -690,7 +698,9 @@ body { font-family: system-ui, -apple-system, sans-serif; background: #f5f5f3; m
     <div class="sec">Forma de pago</div>
     <div class="pago-opts" style="margin-bottom:20px;">
       <div class="pago-opt" onclick="selEditPago(this,'Efectivo')">💵 Efectivo</div>
-      <div class="pago-opt" onclick="selEditPago(this,'Tarjeta')">💳 Tarjeta</div>
+      <div class="pago-opt" onclick="selEditPago(this,'Débito')">💳 Débito</div>
+      <div class="pago-opt" onclick="selEditPago(this,'Crédito')">💳 Crédito</div>
+      <div class="pago-opt" onclick="selEditPago(this,'Amex')">🟣 Amex</div>
     </div>
     <button class="btn btn-dark" onclick="guardarEdicionVenta()">✓ Guardar cambio</button>
     <button class="btn btn-outline" onclick="cerrarModal('modalEditVenta')">Cancelar</button>
@@ -713,7 +723,9 @@ body { font-family: system-ui, -apple-system, sans-serif; background: #f5f5f3; m
     <div class="sec">Forma de pago</div>
     <div class="pago-opts" style="margin-bottom:14px;">
       <div class="pago-opt sel" onclick="selPagoModal(this,'Efectivo')">💵 Efectivo</div>
-      <div class="pago-opt" onclick="selPagoModal(this,'Tarjeta')">💳 Tarjeta</div>
+      <div class="pago-opt" onclick="selPagoModal(this,'Débito')">💳 Débito</div>
+      <div class="pago-opt" onclick="selPagoModal(this,'Crédito')">💳 Crédito</div>
+      <div class="pago-opt" onclick="selPagoModal(this,'Amex')">🟣 Amex</div>
       <div class="pago-opt" onclick="selPagoModal(this,'Mixto')">🔀 Mixto</div>
     </div>
     </div>
@@ -724,7 +736,11 @@ body { font-family: system-ui, -apple-system, sans-serif; background: #f5f5f3; m
           <input type="number" id="modalMixtoEfectivo" placeholder="$0" min="0" oninput="calcMixtoModalDesdeEf()" style="width:100%;padding:9px 13px;border:1px solid #ddd;border-radius:8px;font-size:15px;outline:none;" />
         </div>
         <div style="flex:1;">
-          <div class="sec" style="margin-bottom:6px;">💳 Tarjeta</div>
+          <div style="display:flex;gap:6px;margin-bottom:6px;">
+            <button class="mixto-card-btn sel" id="mxMTipoDebito" onclick="selMixtoTipoModal(this,'Débito')">Débito</button>
+            <button class="mixto-card-btn" id="mxMTipoCredito" onclick="selMixtoTipoModal(this,'Crédito')">Crédito</button>
+            <button class="mixto-card-btn" id="mxMTipoAmex" onclick="selMixtoTipoModal(this,'Amex')">Amex</button>
+          </div>
           <input type="number" id="modalMixtoTarjeta" placeholder="$0" min="0" oninput="calcMixtoModalDesdeT()" style="width:100%;padding:9px 13px;border:1px solid #ddd;border-radius:8px;font-size:15px;outline:none;" />
         </div>
       </div>
@@ -913,7 +929,10 @@ body { font-family: system-ui, -apple-system, sans-serif; background: #f5f5f3; m
         <div class="sec">Forma de pago</div>
         <select id="gastoFormaPago" style="width:100%;padding:10px 13px;border:1px solid #ddd;border-radius:8px;font-size:14px;background:#fff;outline:none;">
           <option value="Efectivo">💵 Efectivo</option>
-          <option value="Tarjeta">💳 Tarjeta</option>
+          <option value="Débito">💳 Débito</option>
+          <option value="Crédito">💳 Crédito</option>
+          <option value="Amex">🟣 Amex</option>
+          <option value="Mixto">🔀 Mixto</option>
           <option value="Transferencia">📲 Transferencia</option>
         </select>
       </div>
@@ -1025,13 +1044,14 @@ const MP={
 };
 
 // ── ESTADO EN MEMORIA ──
-let currentItems=[], currentPago="Efectivo", editandoId=null, currentPropina=0, currentMixtoEf=0, currentMixtoTj=0;
+let currentItems=[], currentPago="Efectivo", editandoId=null, currentPropina=0, currentMixtoEf=0, currentMixtoTj=0, currentMixtoTipo='Débito';
+function isTarjeta(tipo){return tipo==='Débito'||tipo==='Crédito'||tipo==='Amex';}
 let currentCanal=null; // null=mesa local | 'uber'|'rappi'|'didi'
 let _currentCatItems=[];
 let comandas=[], ventas=[], meseros=[], cancelaciones=[];
 let viewMode='mapa';
 let gerentesCache=[], gerenteCallback=null, gerenteCancelCallback=null;
-let modalPago="Efectivo", modalIdx=null, modalPropina=0, modalMixtoEf=0, modalMixtoTj=0;
+let modalPago="Efectivo", modalIdx=null, modalPropina=0, modalMixtoEf=0, modalMixtoTj=0, modalMixtoTipo='Débito';
 let pinCallback=null;
 let ultimaActualizacion=0;
 let editVentaId=null, editPagoAct='';
@@ -1500,7 +1520,7 @@ function renderTicket(){
     notice.textContent=`⚠ Cancelación${pendientes.length>1?'es':''} pendiente${pendientes.length>1?'s':''} de autorización al cobrar: ${items}`;
   }else{notice.style.display='none';}
   const t=totales();
-  const propDisplay=currentPago==='Tarjeta'&&currentPropina>0?`<div class="ticket-line green"><span>🎁 Propina</span><span>${fmtProp(currentPropina)}</span></div>`:'';
+  const propDisplay=(isTarjeta(currentPago)||currentPago==='Mixto')&&currentPropina>0?`<div class="ticket-line green"><span>🎁 Propina</span><span>${fmtProp(currentPropina)}</span></div>`:'';
   const descDisplay=t.descValor>0?`<div class="ticket-line amber"><span>🏷 Descuento</span><span>−${fmtProp(t.descValor)}</span></div>`:'';
   document.getElementById('ticketLines').innerHTML=
     (cort>0?`<div class="ticket-line amber"><span>★ Cortesías</span><span>$${cort.toLocaleString()}</span></div>`:'')+
@@ -1530,8 +1550,8 @@ function totales(){
 function selPago(el,tipo){
   document.querySelectorAll('#screen-nueva .pago-opt').forEach(e=>e.classList.remove('sel'));
   el.classList.add('sel');currentPago=tipo;
-  currentPropina=0;currentMixtoEf=0;currentMixtoTj=0;
-  document.getElementById('propinaSection').style.display=tipo==='Tarjeta'?'block':'none';
+  currentPropina=0;currentMixtoEf=0;currentMixtoTj=0;currentMixtoTipo='Débito';
+  document.getElementById('propinaSection').style.display=isTarjeta(tipo)?'block':'none';
   document.getElementById('mixtoSection').style.display=tipo==='Mixto'?'block':'none';
   document.getElementById('mixtoEfectivo').value='';
   document.getElementById('mixtoTarjeta').value='';
@@ -1542,6 +1562,14 @@ function selPago(el,tipo){
   document.getElementById('propinaCustom').value='';
   document.querySelectorAll('#screen-nueva .propina-btn').forEach(b=>b.classList.remove('sel'));
   renderTicket();
+}
+function selMixtoTipo(el,tipo){
+  document.querySelectorAll('#mixtoSection .mixto-card-btn').forEach(b=>b.classList.remove('sel'));
+  el.classList.add('sel');currentMixtoTipo=tipo;
+}
+function selMixtoTipoModal(el,tipo){
+  document.querySelectorAll('#modalMixtoSection .mixto-card-btn').forEach(b=>b.classList.remove('sel'));
+  el.classList.add('sel');modalMixtoTipo=tipo;
 }
 function calcMixtoDesdeEf(){
   const total=totales().cobrable;
@@ -1713,7 +1741,7 @@ function cobrarComanda(){
   const doCobrar=(gerente)=>{
     guardarCancelacionesItems();
     const _canalLabels={uber:'Uber Eats',rappi:'Rappi',didi:'DiDi Food'};
-    const pagoStr=currentCanal?_canalLabels[currentCanal]:(currentPago==='Mixto'?`Mixto ($${currentMixtoEf.toLocaleString()} ef / $${currentMixtoTj.toLocaleString()} tj)`:currentPago);
+    const pagoStr=currentCanal?_canalLabels[currentCanal]:(currentPago==='Mixto'?`Mixto ($${currentMixtoEf.toLocaleString()} ef / $${currentMixtoTj.toLocaleString()} ${currentMixtoTipo.toLowerCase()})`:currentPago);
     const descConAuth=currentDescuento.tipo?{...currentDescuento,autorizadoPor:gerente}:null;
     const nuevos=currentItems.filter(it=>!it.cancelado).reduce((a,it)=>{const pq=it._impresosQ??0;if(it.q>pq)a.push({...it,q:it.q-pq});return a;},[]);
     currentItems.forEach(it=>{if(!it.cancelado)it._impresosQ=it.q;});
@@ -1758,7 +1786,7 @@ function guardarCancelacionesItems(){
 
 function resetForm(){
   document.getElementById('mesa').value='';document.getElementById('meseroSel').value='';
-  currentItems=[];currentPago='Efectivo';currentPropina=0;currentMixtoEf=0;currentMixtoTj=0;editandoId=null;
+  currentItems=[];currentPago='Efectivo';currentPropina=0;currentMixtoEf=0;currentMixtoTj=0;currentMixtoTipo='Débito';editandoId=null;
   currentCanal=null;document.getElementById('deliveryApps').classList.remove('open');_updateCanalUI();_updatePagoVisibility();
   const activeCat=document.querySelector('.cat-btn.active')?.textContent;if(activeCat)renderPlatillos(activeCat);
   document.querySelectorAll('#screen-nueva .pago-opt').forEach((e,i)=>e.classList.toggle('sel',i===0));
@@ -2106,7 +2134,7 @@ function mostrarConfirmacionCobro(doCobrar){
   const mesa=document.getElementById('mesa').value.trim();
   const mesero=document.getElementById('meseroSel').value||'';
   const _canalLabels={uber:'Uber Eats',rappi:'Rappi',didi:'DiDi Food'};
-  const pago=currentCanal?_canalLabels[currentCanal]:(currentPago==='Mixto'?`Mixto ($${currentMixtoEf.toLocaleString()} ef / $${currentMixtoTj.toLocaleString()} tj)`:currentPago);
+  const pago=currentCanal?_canalLabels[currentCanal]:(currentPago==='Mixto'?`Mixto ($${currentMixtoEf.toLocaleString()} ef / $${currentMixtoTj.toLocaleString()} ${currentMixtoTipo.toLowerCase()})`:currentPago);
   _pendingCobro=doCobrar;
   document.getElementById('confirmCobroMesa').textContent='Mesa '+mesa+(mesero?' · '+mesero:'')+(currentCanal?'':' · '+pago);
   document.getElementById('confirmCobroDetalle').textContent='$'+t.cobrable.toLocaleString();
@@ -2169,8 +2197,8 @@ function abrirCobro(id){
 }
 function selPagoModal(el,tipo){
   document.querySelectorAll('#modalCobrar .pago-opt').forEach(e=>e.classList.remove('sel'));
-  el.classList.add('sel');modalPago=tipo;modalPropina=0;modalMixtoEf=0;modalMixtoTj=0;
-  document.getElementById('modalPropinaSection').style.display=tipo==='Tarjeta'?'block':'none';
+  el.classList.add('sel');modalPago=tipo;modalPropina=0;modalMixtoEf=0;modalMixtoTj=0;modalMixtoTipo='Débito';
+  document.getElementById('modalPropinaSection').style.display=isTarjeta(tipo)?'block':'none';
   document.getElementById('modalMixtoSection').style.display=tipo==='Mixto'?'block':'none';
   document.getElementById('modalMixtoEfectivo').value='';
   document.getElementById('modalMixtoTarjeta').value='';
@@ -2252,10 +2280,10 @@ function _ejecutarCobro(autorizadoPor){
   const cancItems=c.items.filter(it=>it.cancelado&&!it._loggedCanc);
   if(cancItems.length){cancelaciones.push({id:Date.now(),mesa:c.mesa,mesero:c.mesero,items:JSON.parse(JSON.stringify(cancItems)),valor:cancItems.reduce((s,it)=>s+it.p*it.q,0),hora:c.hora,fecha:c.fecha||new Date().toLocaleDateString('es-MX'),...(autorizadoPor?{autorizadoPor}:{})});}
   const _canalLbls={uber:'Uber Eats',rappi:'Rappi',didi:'DiDi Food'};
-  const pagoStrModal=c.canal?_canalLbls[c.canal]:(modalPago==='Mixto'?`Mixto ($${modalMixtoEf.toLocaleString()} ef / $${modalMixtoTj.toLocaleString()} tj)`:modalPago);
+  const pagoStrModal=c.canal?_canalLbls[c.canal]:(modalPago==='Mixto'?`Mixto ($${modalMixtoEf.toLocaleString()} ef / $${modalMixtoTj.toLocaleString()} ${modalMixtoTipo.toLowerCase()})`:modalPago);
   const {bruto,desc,cobrable}=calcDescModal(c);
   const descObj=desc>0?{tipo:modalDescuento.tipo,pct:modalDescuento.pct,valor:desc,...(autorizadoPor?{autorizadoPor}:{})}:null;
-  const venta={...c,total:cobrable,subtotal:bruto,descuento:descObj,pago:pagoStrModal,propina:modalPropina,estado:'cerrada',...(modalPago==='Mixto'?{mixtoEf:modalMixtoEf,mixtoTj:modalMixtoTj}:{}),...(autorizadoPor?{autorizadoPor}:{})};
+  const venta={...c,total:cobrable,subtotal:bruto,descuento:descObj,pago:pagoStrModal,propina:modalPropina,estado:'cerrada',...(modalPago==='Mixto'?{mixtoEf:modalMixtoEf,mixtoTj:modalMixtoTj,mixtoTipo:modalMixtoTipo}:{}),...(autorizadoPor?{autorizadoPor}:{})};
   const yaExiste=ventas.some(v=>v.id===venta.id);
   if(!yaExiste)ventas.push(venta);
   else console.warn('⚠ Venta duplicada bloqueada para mesa',c.mesa,'id',venta.id);
@@ -2322,7 +2350,7 @@ function abrirEditVenta(id){
   document.getElementById('editPin').value='';
   document.getElementById('editPinError').textContent='';
   document.querySelectorAll('#modalEditVenta .pago-opt').forEach(el=>{
-    el.classList.toggle('sel',el.textContent.includes(editPagoAct.split(' ')[0])||editPagoAct.includes(el.textContent.includes('Efectivo')?'Efectivo':'Tarjeta'));
+    el.classList.toggle('sel',el.textContent.includes(editPagoAct.split(' ')[0])||(editPagoAct==='Tarjeta'&&el.textContent.includes('Débito')));
   });
   document.getElementById('modalEditVenta').classList.add('open');
 }
@@ -2505,7 +2533,7 @@ function generarTextoCierre(fecha){
     metodos[base].n++;metodos[base].t+=v.total;metodos[base].p+=(v.propina||0);
     if(base==='Mixto'){
       if(v.mixtoEf!==undefined){mixtoEfTot+=v.mixtoEf;mixtoTjTot+=v.mixtoTj;}
-      else{const m=v.pago.match(/\$([0-9,]+)\s*ef.*?\$([0-9,]+)\s*tj/);if(m){mixtoEfTot+=parseFloat(m[1].replace(/,/g,''));mixtoTjTot+=parseFloat(m[2].replace(/,/g,''));}}
+      else{const m=v.pago.match(/\$([0-9,]+)\s*ef.*?\$([0-9,]+)\s*(tj|débito|crédito|amex)/i);if(m){mixtoEfTot+=parseFloat(m[1].replace(/,/g,''));mixtoTjTot+=parseFloat(m[2].replace(/,/g,''));}}
     }
   });
   // Por mesero
@@ -2536,7 +2564,7 @@ function generarTextoCierre(fecha){
   txt+=`\n━━━ FORMAS DE PAGO ━━━━━━━━━━━━━━━━━━━\n`;
   Object.entries(metodos).forEach(([m,d])=>{
     txt+=`${m.padEnd(12)} $${d.t.toLocaleString()}  (${d.n} cmd${d.p>0?'  prop $'+d.p.toLocaleString():''})\n`;
-    if(m==='Mixto'&&(mixtoEfTot+mixtoTjTot)>0)txt+=`  └ EF: $${mixtoEfTot.toLocaleString()}  |  TJ: $${mixtoTjTot.toLocaleString()}\n`;
+    if(m==='Mixto'&&(mixtoEfTot+mixtoTjTot)>0)txt+=`  └ EF: $${mixtoEfTot.toLocaleString()}  |  Card: $${mixtoTjTot.toLocaleString()}\n`;
   });
   txt+=`\n━━━ PROPINAS ━━━━━━━━━━━━━━━━━━━━━━━━━\n`;
   txt+=`Total propinas:  $${propTotal.toLocaleString()}\n`;
@@ -3105,11 +3133,11 @@ function renderAdmin(){
     metodos[base].n++;metodos[base].t+=v.total;metodos[base].p+=(v.propina||0);
     if(base==='Mixto'){
       if(v.mixtoEf!==undefined){mixtoEfT+=v.mixtoEf;mixtoTjT+=v.mixtoTj;}
-      else{const m=v.pago.match(/\$([0-9,]+)\s*ef.*?\$([0-9,]+)\s*tj/);if(m){mixtoEfT+=parseFloat(m[1].replace(/,/g,''));mixtoTjT+=parseFloat(m[2].replace(/,/g,''));}}
+      else{const m=v.pago.match(/\$([0-9,]+)\s*ef.*?\$([0-9,]+)\s*(tj|débito|crédito|amex)/i);if(m){mixtoEfT+=parseFloat(m[1].replace(/,/g,''));mixtoTjT+=parseFloat(m[2].replace(/,/g,''));}}
     }
   });
   const efTotal=(metodos['Efectivo']?.t||0);
-  const tjTotal=(metodos['Tarjeta']?.t||0)+(metodos['Mixto']?.t||0);
+  const tjTotal=(metodos['Tarjeta']?.t||0)+(metodos['Débito']?.t||0)+(metodos['Crédito']?.t||0)+(metodos['Amex']?.t||0)+(metodos['Mixto']?.t||0);
 
   // Label del rango
   const rangoLabels={hoy:'Hoy',ayer:'Ayer','7d':'Últimos 7 días','30d':'Últimos 30 días'};
@@ -3194,7 +3222,7 @@ function renderAdmin(){
   }
 
   // ── FORMAS DE PAGO ──
-  const pagColors={'Efectivo':'#0D2A5E','Tarjeta':'#F5A020','Mixto':'#4A90C4'};
+  const pagColors={'Efectivo':'#0D2A5E','Débito':'#2d7a2d','Crédito':'#e67e22','Amex':'#6366f1','Tarjeta':'#F5A020','Mixto':'#4A90C4'};
   document.getElementById('adminPago').innerHTML=total?Object.entries(metodos).sort((a,b)=>b[1].t-a[1].t).map(([m,d])=>{
     const pct=Math.round(d.t/total*100),color=pagColors[m]||'#888';
     return`<div style="margin-bottom:14px;">
@@ -3869,7 +3897,7 @@ function exportarDashboard(){
     metodos[base].comandas++;metodos[base].venta+=v.total;metodos[base].propinas+=(v.propina||0);
     if(base==='Mixto'){
       if(v.mixtoEf!==undefined){mixtoEfT+=v.mixtoEf;mixtoTjT+=v.mixtoTj;}
-      else{const m=v.pago.match(/\$([0-9,]+)\s*ef.*?\$([0-9,]+)\s*tj/);if(m){mixtoEfT+=parseFloat(m[1].replace(/,/g,''));mixtoTjT+=parseFloat(m[2].replace(/,/g,''));}}
+      else{const m=v.pago.match(/\$([0-9,]+)\s*ef.*?\$([0-9,]+)\s*(tj|débito|crédito|amex)/i);if(m){mixtoEfT+=parseFloat(m[1].replace(/,/g,''));mixtoTjT+=parseFloat(m[2].replace(/,/g,''));}}
     }
   });
 
@@ -3898,14 +3926,14 @@ function exportarDashboard(){
     const fmt=`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
     const vd=vFilt.filter(v=>{const vd2=new Date(v.id);return vd2.getFullYear()===d.getFullYear()&&vd2.getMonth()===d.getMonth()&&vd2.getDate()===d.getDate();});
     const ef=vd.filter(v=>v.pago==='Efectivo'||v.pago.startsWith('Mixto')).reduce((s,v)=>s+(v.mixtoEf!==undefined?v.mixtoEf:v.pago==='Efectivo'?v.total:0),0);
-    const tj=vd.filter(v=>v.pago==='Tarjeta'||v.pago.startsWith('Mixto')).reduce((s,v)=>s+(v.mixtoTj!==undefined?v.mixtoTj:v.pago==='Tarjeta'?v.total:0),0);
+    const tj=vd.filter(v=>isTarjeta(v.pago)||v.pago==='Tarjeta'||v.pago.startsWith('Mixto')).reduce((s,v)=>s+(v.mixtoTj!==undefined?v.mixtoTj:(isTarjeta(v.pago)||v.pago==='Tarjeta')?v.total:0),0);
     const descDia=vd.reduce((s,v)=>s+((v.descuento&&v.descuento.valor)||0)+(v.cortesias||0),0);
     const cancDia=cFilt.filter(c=>{const cd=new Date(c.id);return cd.getFullYear()===d.getFullYear()&&cd.getMonth()===d.getMonth()&&cd.getDate()===d.getDate();}).reduce((s,c)=>s+c.valor,0);
     return{fecha:fmt,comandas:vd.length,venta:vd.reduce((s,v)=>s+v.total,0),propinas:vd.reduce((s,v)=>s+(v.propina||0),0),efectivo:ef,tarjeta:tj,descuentos:descDia,cancelaciones:cancDia};
   });
 
   const efTotal=(metodos['Efectivo']?.venta||0)+mixtoEfT;
-  const tjTotal=(metodos['Tarjeta']?.venta||0)+mixtoTjT;
+  const tjTotal=(metodos['Débito']?.venta||0)+(metodos['Crédito']?.venta||0)+(metodos['Amex']?.venta||0)+(metodos['Tarjeta']?.venta||0)+mixtoTjT;
 
   const data={
     tipo:'corte-ventas-instinto-pos',
@@ -3971,7 +3999,7 @@ function verReportePeriodo(){
     }
   });
   const efTotal=(metodos['Efectivo']?.t||0)+mixtoEfT;
-  const tjTotal=(metodos['Tarjeta']?.t||0)+mixtoTjT;
+  const tjTotal=(metodos['Tarjeta']?.t||0)+(metodos['Débito']?.t||0)+(metodos['Crédito']?.t||0)+(metodos['Amex']?.t||0)+mixtoTjT;
 
   // Por mesero
   const xMes={};
@@ -4104,7 +4132,7 @@ ${!isOneDay&&porDia.length>1?`
     <h2>Formas de pago</h2>
     ${Object.entries(metodos).sort((a,b)=>b[1].t-a[1].t).map(([m,d])=>{
       const pct=total?Math.round(d.t/total*100):0;
-      const colors={'Efectivo':'#0D2A5E','Tarjeta':'#F5A020','Mixto':'#4A90C4'};
+      const colors={'Efectivo':'#0D2A5E','Débito':'#2d7a2d','Crédito':'#e67e22','Amex':'#6366f1','Tarjeta':'#F5A020','Mixto':'#4A90C4'};
       return`<div style="margin-bottom:14px;">
         <div style="display:flex;justify-content:space-between;margin-bottom:4px;">
           <span style="font-weight:600;">${m}</span>
