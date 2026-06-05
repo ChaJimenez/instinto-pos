@@ -17,6 +17,19 @@ app.use(express.json({
 }));
 
 const KEYS = { cmd: 'i:cmd', vta: 'i:vta', mes: 'i:mes', canc: 'i:canc', ts: 'i:lastUpdate' };
+
+// Normaliza cualquier venta a fecha ISO YYYY-MM-DD (maneja DD/MM/YYYY y YYYY-MM-DD)
+function normalizarFecha(v) {
+  if (v.fecha) {
+    const f = String(v.fecha);
+    if (f.includes('/')) {
+      const [d, m, y] = f.split('/');
+      return `${y}-${String(m).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+    }
+    return f.slice(0, 10);
+  }
+  return new Date(v.id).toLocaleDateString('sv-SE', { timeZone: 'America/Mexico_City' });
+}
 const PIN = process.env.PIN_ADMIN || '1234';
 const API_SECRET = process.env.API_SECRET || 'instinto-pos-2026';
 
@@ -96,12 +109,36 @@ app.post('/api/importar', requireAuth, async (req, res) => {
 });
 
 // ── Impresión en cocina / barra ──
-const BARRA_CATS = ['Refrescos', 'Cervezas', 'Cervezas Artesanales', 'Preparados'];
+const BARRA_CATS = ['Refrescos', 'Cervezas', 'Cervezas Artesanales', 'Preparados', 'Cafés'];
 
 app.post('/api/imprimir', requireAuth, async (req, res) => {
   try {
-    const { mesa, mesero, items = [], hora } = req.body;
-    const activos = items.filter(it => !it.cancelado);
+    const { mesa, mesero, items = [], hora, comandaId } = req.body;
+
+    // Filtro 1: eliminar cancelados e ítems ya marcados como impresos por el cliente
+    let activos = items.filter(it => !it.cancelado && !it._impreso);
+
+    // Filtro 2 (server-side): si viene comandaId, deduplicar usando el historial en Redis
+    if (comandaId) {
+      const printedKey = 'i:printed:' + comandaId;
+      const prevPrinted = (await kv.get(printedKey)) || {};
+
+      // Solo pasan ítems cuya cantidad supere lo ya impreso
+      activos = activos.reduce((a, it) => {
+        const prevQ = prevPrinted[it.n] || 0;
+        const delta = it.q - prevQ;
+        if (delta > 0) a.push({ ...it, q: delta });
+        return a;
+      }, []);
+
+      // Actualizar historial con lo que efectivamente se va a imprimir
+      if (activos.length) {
+        const newPrinted = { ...prevPrinted };
+        activos.forEach(it => { newPrinted[it.n] = (newPrinted[it.n] || 0) + it.q; });
+        await kv.set(printedKey, newPrinted, { ex: 86400 }); // TTL 24h
+      }
+    }
+
     const cocina = activos.filter(it => !BARRA_CATS.includes(it.cat));
     const barra  = activos.filter(it =>  BARRA_CATS.includes(it.cat));
     const ts = Date.now();
@@ -130,12 +167,16 @@ app.post('/api/imprimir-recibo', requireAuth, async (req, res) => {
 
 app.get('/api/print-queue', async (req, res) => {
   try {
-    const raw = await kv.lrange('i:printjobs', 0, -1);
-    const jobs = raw.map(j => (typeof j === 'string' ? JSON.parse(j) : j));
+    // LPOP atómico por elemento: evita la ventana LRANGE→LTRIM donde un job
+    // recién encolado podría quedar en un índice ambiguo y ser descartado.
+    const jobs = [];
+    const MAX = 50;
+    for (let i = 0; i < MAX; i++) {
+      const raw = await kv.lpop('i:printjobs');
+      if (raw === null || raw === undefined) break;
+      try { jobs.push(typeof raw === 'string' ? JSON.parse(raw) : raw); } catch(e) {}
+    }
     res.json({ jobs });
-    // ltrim mantiene solo los elementos DESPUÉS de los que leímos,
-    // evitando borrar jobs nuevos encolados mientras procesamos
-    if (raw.length) await kv.ltrim('i:printjobs', raw.length, -1);
   } catch (e) {
     res.json({ jobs: [] });
   }
@@ -243,17 +284,7 @@ app.get('/api/inv-alertas', async (req, res) => {
     const fechaInicio     = config.fechaInicioVentas || '2000-01-01';
     const fechasProcesadas = new Set(cortes.map(c => c.fecha));
 
-    const normFecha = (v) => {
-      if (v.fecha) {
-        const f = v.fecha;
-        if (f.includes('/')) {
-          const [d,m,y] = f.split('/');
-          return `${y}-${String(m).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
-        }
-        return f.slice(0,10);
-      }
-      return new Date(v.id).toISOString().slice(0,10);
-    };
+    const normFecha = normalizarFecha;
 
     const recetaMap = {};
     recetas.forEach(r => { recetaMap[r.platillo] = r.ingredientes || []; });
@@ -456,7 +487,7 @@ app.get('/api/gastos', async (req, res) => {
   } catch(e) { res.json({ gastos: [] }); }
 });
 
-app.post('/api/gastos', async (req, res) => {
+app.post('/api/gastos', requireAuth, async (req, res) => {
   try {
     const { fecha, categoria, descripcion, monto, formaPago, comprobante, notas } = req.body || {};
     if (!fecha || !descripcion || !monto) return res.status(400).json({ error: 'Faltan campos' });
@@ -503,12 +534,26 @@ app.post('/api/menu-cambios', async (req, res) => {
 app.get('/api/reportes', async (req, res) => {
   try {
     const { desde, hasta } = req.query;
-    const ventas = await kv.get(KEYS.vta) || [];
+    let ventas = await kv.get(KEYS.vta) || [];
 
-    const normFecha = (v) => {
-      if (v.fecha) return String(v.fecha).slice(0, 10);
-      return new Date(v.id).toLocaleDateString('sv-SE', { timeZone: 'America/Mexico_City' });
-    };
+    // Si el rango incluye datos más viejos que 90 días, buscar también en archivos
+    if (desde) {
+      const cutoff = new Date(Date.now() - 90 * 86400000)
+        .toLocaleDateString('sv-SE', { timeZone: 'America/Mexico_City' });
+      if (desde < cutoff) {
+        const meses = new Set();
+        let cursor = new Date(desde + 'T12:00:00');
+        const limite  = new Date(cutoff  + 'T12:00:00');
+        while (cursor <= limite) {
+          meses.add(`${cursor.getFullYear()}-${String(cursor.getMonth()+1).padStart(2,'0')}`);
+          cursor.setMonth(cursor.getMonth() + 1);
+        }
+        const archivos = await Promise.all([...meses].map(m => kv.get(`i:vta:archivo:${m}`)));
+        archivos.forEach(arr => { if (arr && arr.length) ventas = [...ventas, ...arr]; });
+      }
+    }
+
+    const normFecha = normalizarFecha;
 
     const filtradas = ventas.filter(v => {
       const f = normFecha(v);
@@ -599,6 +644,62 @@ app.get('/api/reportes', async (req, res) => {
 });
 
 app.get('/health', (req, res) => res.json({ ok: true, ts: new Date().toISOString() }));
+
+// ── Archivar ventas con más de 90 días — se llama desde el cierre del día ──
+// Mueve ventas antiguas a keys mensuales i:vta:archivo:YYYY-MM para mantener
+// i:vta pequeño y evitar que el payload supere el límite de Upstash (~10MB).
+app.post('/api/archivar', requireAuth, async (req, res) => {
+  try {
+    const ventas = await kv.get(KEYS.vta) || [];
+    const cutoff = new Date(Date.now() - 90 * 86400000)
+      .toLocaleDateString('sv-SE', { timeZone: 'America/Mexico_City' });
+
+    const mantener = [];
+    const byMonth  = {};
+    ventas.forEach(v => {
+      const f = normalizarFecha(v);
+      if (f >= cutoff) {
+        mantener.push(v);
+      } else {
+        const mes = f.slice(0, 7);
+        if (!byMonth[mes]) byMonth[mes] = [];
+        byMonth[mes].push(v);
+      }
+    });
+
+    const totalArchivar = ventas.length - mantener.length;
+    if (!totalArchivar) return res.json({ ok: true, archivadas: 0, mensaje: 'Nada que archivar' });
+
+    // Merge con archivos existentes (evita duplicados por id)
+    await Promise.all([
+      kv.set(KEYS.vta, mantener),
+      kv.set(KEYS.ts, Date.now()),
+      ...Object.entries(byMonth).map(async ([mes, vts]) => {
+        const prev = await kv.get(`i:vta:archivo:${mes}`) || [];
+        const prevIds = new Set(prev.map(v => v.id));
+        await kv.set(`i:vta:archivo:${mes}`, [...prev, ...vts.filter(v => !prevIds.has(v.id))]);
+      }),
+    ]);
+
+    res.json({ ok: true, archivadas: totalArchivar, restantes: mantener.length, meses: Object.keys(byMonth).sort() });
+  } catch(e) {
+    console.error('/api/archivar:', e);
+    res.status(500).json({ error: 'Error de conexión' });
+  }
+});
+
+// ── Leer ventas archivadas de un mes específico (YYYY-MM) ──
+app.get('/api/archivo/:mes', async (req, res) => {
+  try {
+    const { mes } = req.params;
+    if (!/^\d{4}-\d{2}$/.test(mes)) return res.status(400).json({ error: 'Formato inválido. Usa YYYY-MM' });
+    const ventas = await kv.get(`i:vta:archivo:${mes}`) || [];
+    res.json({ ventas, mes, total: ventas.length });
+  } catch(e) {
+    console.error('/api/archivo:', e);
+    res.status(500).json({ error: 'Error de conexión' });
+  }
+});
 
 // ══════════════════════════════════════════════════════════════════
 // ── DELIVERECT WEBHOOK ──────────────────────────────────────────

@@ -137,12 +137,12 @@ const BARRA = new Set(['Refrescos','Cervezas','Cervezas Artesanales','Preparados
 // ── Estado local (persiste en sessionStorage — se limpia al recargar) ──
 function loadState() {
   try {
-    const s = JSON.parse(sessionStorage.getItem('kds') || '{}');
+    const s = JSON.parse(localStorage.getItem('kds') || '{}');
     return { ready: s.ready||{}, bumped: s.bumped||[], bumpedCount: s.bumpedCount||0 };
   } catch(e) { return {ready:{},bumped:[],bumpedCount:0}; }
 }
 function saveState(s) {
-  try { sessionStorage.setItem('kds', JSON.stringify(s)); } catch(e){}
+  try { localStorage.setItem('kds', JSON.stringify(s)); } catch(e){}
 }
 let state = loadState();
 

@@ -358,6 +358,7 @@ body { font-family: system-ui, -apple-system, sans-serif; background: #f5f5f3; m
     <input type="number" id="descPct" placeholder="%" min="0" max="100" step="1" oninput="renderTicket()" style="width:120px;padding:9px 13px;border:1px solid #ddd;border-radius:8px;font-size:14px;outline:none;">
   </div>
   <div id="descDisplay" style="font-size:14px;color:#b06800;margin-bottom:10px;font-weight:500;"></div>
+  <button class="btn btn-outline" onclick="imprimirCuentaActiva()" style="border-color:#1a1a1a;color:#1a1a1a;">🖨 Imprimir cuenta</button>
   <button class="btn btn-outline" onclick="saveComanda()">Guardar como abierta</button>
   <button class="btn btn-dark" id="btnCobrar" onclick="cobrarComanda()">Cobrar y cerrar mesa</button>
 </div>
@@ -707,11 +708,14 @@ body { font-family: system-ui, -apple-system, sans-serif; background: #f5f5f3; m
       <div id="modalLines"></div>
       <div class="ticket-total"><span>Total cobrable</span><span id="modalTotal"></span></div>
     </div>
+    <div id="modalDeliveryNotice" style="display:none;padding:10px 14px;background:#f0fdf4;border:1px solid #86efac;border-radius:10px;margin-bottom:14px;font-size:13px;font-weight:500;"></div>
+    <div id="modalPaySection">
     <div class="sec">Forma de pago</div>
     <div class="pago-opts" style="margin-bottom:14px;">
       <div class="pago-opt sel" onclick="selPagoModal(this,'Efectivo')">💵 Efectivo</div>
       <div class="pago-opt" onclick="selPagoModal(this,'Tarjeta')">💳 Tarjeta</div>
       <div class="pago-opt" onclick="selPagoModal(this,'Mixto')">🔀 Mixto</div>
+    </div>
     </div>
     <div id="modalMixtoSection" style="display:none;margin-bottom:14px;">
       <div style="display:flex;gap:10px;margin-bottom:10px;">
@@ -930,9 +934,35 @@ body { font-family: system-ui, -apple-system, sans-serif; background: #f5f5f3; m
   </div>
 </div>
 
+<!-- MODAL: opciones rápidas al tocar mesa en el mapa -->
+<div class="modal-bg" id="modalMesaOpciones">
+  <div class="modal" style="max-width:320px;">
+    <h3 id="mesaOpTitle">Mesa</h3>
+    <div id="mesaOpInfo" style="font-size:13px;color:#888;margin-bottom:20px;"></div>
+    <button class="btn btn-outline" onclick="opcionImprimirMesa()" style="border-color:#1a1a1a;color:#1a1a1a;">🖨 Imprimir cuenta</button>
+    <button class="btn btn-outline" onclick="opcionEditarMesa()">✏ Editar comanda</button>
+    <button class="btn btn-dark" onclick="opcionCobrarMesa()">Cobrar</button>
+    <button class="btn btn-outline" onclick="cerrarModal('modalMesaOpciones')" style="margin-top:6px;color:#aaa;border-color:#e0e0e0;">Cancelar</button>
+  </div>
+</div>
+
+<!-- MODAL: confirmar cobro desde ticket activo -->
+<div class="modal-bg" id="modalConfirmarCobro">
+  <div class="modal" style="max-width:320px;">
+    <h3>Confirmar cobro</h3>
+    <div id="confirmCobroMesa" style="font-size:16px;font-weight:600;margin-bottom:4px;"></div>
+    <div id="confirmCobroDetalle" style="font-size:22px;font-weight:700;color:#1a1a1a;margin-bottom:20px;"></div>
+    <button class="btn btn-dark" onclick="ejecutarCobro()">✓ Cobrar</button>
+    <button class="btn btn-outline" onclick="cerrarModal('modalConfirmarCobro')">Cancelar</button>
+  </div>
+</div>
+
 <div class="toast" id="toast"></div>
 
 <script>
+// ── AUTO-RELOAD: fuerza recarga cuando hay nuevo código desplegado ──
+(function(){try{var V='20260601-3';if(localStorage.getItem('_posV')!==V){localStorage.setItem('_posV',V);location.reload(true);}}catch(e){}})();
+
 // ── CONFIGURACIÓN ──
 const PRINT_SERVER = 'http://127.0.0.1:3000';
 const API_KEY = 'instinto-pos-2026';
@@ -1560,6 +1590,11 @@ function setPropinaCustom(val){
 }
 
 // ── IMPRESIÓN ──
+function reimprimirVenta(id){
+  const v=ventas.find(x=>x.id===id);if(!v)return;
+  enviarRecibo(v);
+}
+
 function imprimirBrowser(venta){
   const activos=venta.items.filter(it=>!it.cancelado);
   const filas=activos.map(it=>{
@@ -1587,6 +1622,12 @@ async function imprimirCuentaPrevia(){
 function imprimirCuentaMesa(id){
   const c=comandas.find(x=>x.id===id);if(!c)return;
   enviarRecibo({mesa:c.mesa,mesero:c.mesero,hora:c.hora,fecha:c.fecha||new Date().toLocaleDateString('es-MX'),items:c.items,total:c.total,cortesias:c.cortesias||0,pago:'',propina:0,preview:true});
+}
+
+async function imprimirCuentaActiva(){
+  if(!validar())return;
+  const t=totales();
+  await enviarRecibo({mesa:document.getElementById('mesa').value.trim(),mesero:document.getElementById('meseroSel').value||'',hora:new Date().toLocaleTimeString('es-MX',{hour:'2-digit',minute:'2-digit'}),fecha:new Date().toLocaleDateString('es-MX'),items:currentItems,total:t.cobrable,cortesias:t.cort||0,pago:'',propina:0,preview:true});
 }
 
 async function enviarRecibo(venta){
@@ -1619,7 +1660,7 @@ async function imprimirTicket(venta){
 async function enviarImpresion(comanda){
   for(let i=0;i<3;i++){
     try{
-      const resp=await fetch('/api/imprimir',{method:'POST',headers:{'Content-Type':'application/json','X-API-Key':API_KEY},body:JSON.stringify({mesa:comanda.mesa,mesero:comanda.mesero,hora:comanda.hora,items:comanda.items})});
+      const resp=await fetch('/api/imprimir',{method:'POST',headers:{'Content-Type':'application/json','X-API-Key':API_KEY},body:JSON.stringify({mesa:comanda.mesa,mesero:comanda.mesero,hora:comanda.hora,items:comanda.items,comandaId:comanda.id})});
       const r=await resp.json();
       if(!resp.ok){toast('⚠ Sin impresión — error '+resp.status+' (verifica servidor)');return;}
       if(r.enviados>0){toast('🖨 Ticket enviado a cocina/barra ✓');return;}
@@ -1645,9 +1686,14 @@ function saveComanda(){
   if(!validar())return;
   const doSave=(gerente)=>{
     guardarCancelacionesItems();
+    const nuevos=currentItems.filter(it=>!it.cancelado).reduce((a,it)=>{const pq=it._impresosQ??0;if(it.q>pq)a.push({...it,q:it.q-pq});return a;},[]);
+    currentItems.forEach(it=>{if(!it.cancelado)it._impresosQ=it.q;});
     const comanda={...buildComanda('abierta'),...(gerente?{autorizadoPor:gerente}:{})};
+    if(editandoId)comandas=comandas.filter(x=>x.id!==editandoId);
     comandas.push(comanda);
-    editandoId=null;guardar();enviarImpresion(comanda);resetForm();toast('Comanda guardada ✓');switchTab('abiertas');
+    editandoId=null;guardar();
+    if(nuevos.length)enviarImpresion({...comanda,items:nuevos});
+    resetForm();toast('Comanda guardada ✓');switchTab('abiertas');
   };
   if(tieneRestriccion()){
     const _mesa=document.getElementById('mesa').value.trim()||'(sin mesa)';
@@ -1669,11 +1715,13 @@ function cobrarComanda(){
     const _canalLabels={uber:'Uber Eats',rappi:'Rappi',didi:'DiDi Food'};
     const pagoStr=currentCanal?_canalLabels[currentCanal]:(currentPago==='Mixto'?`Mixto ($${currentMixtoEf.toLocaleString()} ef / $${currentMixtoTj.toLocaleString()} tj)`:currentPago);
     const descConAuth=currentDescuento.tipo?{...currentDescuento,autorizadoPor:gerente}:null;
-    const esNueva=!editandoId; // si no venía de una comanda guardada, la cocina aún no recibió el ticket
+    const nuevos=currentItems.filter(it=>!it.cancelado).reduce((a,it)=>{const pq=it._impresosQ??0;if(it.q>pq)a.push({...it,q:it.q-pq});return a;},[]);
+    currentItems.forEach(it=>{if(!it.cancelado)it._impresosQ=it.q;});
     const c={...buildComanda('cerrada'),pago:pagoStr,propina:currentPropina,...(gerente?{autorizadoPor:gerente}:{})};
     if(descConAuth)c.descuento=descConAuth;
+    if(editandoId)comandas=comandas.filter(x=>x.id!==editandoId);
     ventas.push(c);editandoId=null;guardar();
-    if(esNueva)enviarImpresion(c); // ticket cocina/barra solo si no se guardó antes
+    if(nuevos.length)enviarImpresion({...c,items:nuevos});
     enviarRecibo(c);
     resetForm();toast('Venta registrada ✓');switchTab('reporte');
   };
@@ -1686,7 +1734,7 @@ function cobrarComanda(){
     const _cortDesc2=currentItems.some(it=>it.cortesia)?'\nCortesías aplicadas':'';
     const _descDesc2=currentDescuento.tipo?'\nDescuento aplicado':'';
     pedirGerente('Autorizar cobro',`Mesa ${_mesa2}${_mesero2?' · '+_mesero2:''} · ${_hora2}${_cancDesc2}${_cortDesc2}${_descDesc2}`,doCobrar);
-  }else{doCobrar(null);}
+  }else{mostrarConfirmacionCobro(doCobrar);}
 }
 
 function buildComanda(estado){
@@ -1777,7 +1825,7 @@ function renderMapaMesas(ab){
     const demorada = mins >= 60;
     const iconCls  = demorada ? 'demorada' : 'ocupada';
     const tiempo   = mins < 60 ? mins+'min' : Math.floor(mins/60)+'h'+(mins%60>0?' '+mins%60+'m':'');
-    return `<div class="mapa-card" onclick="editarComanda(${comanda.id})">
+    return `<div class="mapa-card" onclick="mostrarOpcionesMesa(${comanda.id})">
       <div class="mapa-icon ${iconCls}"></div>
       <div class="mapa-num">${mesaId}</div>
       <div class="mapa-mesero">${esc(comanda.mesero)}</div>
@@ -1794,7 +1842,7 @@ function renderMapaMesas(ab){
       const demorada = mins >= 60;
       const iconCls  = demorada ? 'demorada' : 'ocupada';
       const tiempo   = mins < 60 ? mins+'min' : Math.floor(mins/60)+'h'+(mins%60>0?' '+mins%60+'m':'');
-      return `<div class="mapa-card" onclick="editarComanda(${c.id})">
+      return `<div class="mapa-card" onclick="mostrarOpcionesMesa(${c.id})">
         <div class="mapa-icon ${iconCls}"></div>
         <div class="mapa-num">${esc(c.mesa)}</div>
         <div class="mapa-mesero">${esc(c.mesero)}</div>
@@ -1819,7 +1867,7 @@ function renderMapaMesas(ab){
       const iconClass = c.canal ? 'canal-'+c.canal : 'delivery';
       const appLbl = c.canal ? (canalLabel[c.canal]||'Delivery') : (c.delivery?.channelLabel||'Delivery');
       const subLbl = cliente || appLbl;
-      return `<div class="mapa-card" onclick="editarComanda(${c.id})">
+      return `<div class="mapa-card" onclick="mostrarOpcionesMesa(${c.id})">
         <div class="mapa-icon ${iconClass}"></div>
         <div class="mapa-num" style="font-size:11px;line-height:1.3;">${esc(c.mesa)}</div>
         <div class="mapa-mesero">${esc(subLbl)}</div>
@@ -2001,7 +2049,7 @@ function editarComanda(id){
   _updatePagoVisibility();
   if(!currentCanal)document.getElementById('deliveryApps').classList.remove('open');
   document.getElementById('mesa').value=c.mesa;renderMeseroSelect();document.getElementById('meseroSel').value=c.mesero;
-  currentItems=JSON.parse(JSON.stringify(c.items));currentPago='Efectivo';currentPropina=0;editandoId=id;
+  currentItems=JSON.parse(JSON.stringify(c.items)).map(it=>({...it,_impresosQ:it._impresosQ!=null?it._impresosQ:it.q}));currentPago='Efectivo';currentPropina=0;editandoId=id;
   // Restaurar descuento
   currentDescuento=c.descuento?{tipo:c.descuento.tipo,pct:c.descuento.pct||0,valor:c.descuento.valor||0}:{tipo:null,pct:0,valor:0};
   document.querySelectorAll('#screen-nueva .pago-opt[onclick^="selDesc"]').forEach(el=>{
@@ -2011,7 +2059,7 @@ function editarComanda(id){
   const descPctWrap=document.getElementById('descPctWrap');
   if(descPctWrap)descPctWrap.style.display=currentDescuento.tipo==='pct'?'block':'none';
   if(currentDescuento.tipo==='pct'&&currentDescuento.pct){const el=document.getElementById('descPct');if(el)el.value=currentDescuento.pct;}
-  comandas.splice(idx,1);guardar();renderTicket();
+  renderTicket();
   // Banner delivery — muestra datos del cliente si es orden delivery
   const banner = document.getElementById('editingBanner');
   const canalColors={uber:{bg:'#e8e8e8',border:'#1a1a1a',color:'#1a1a1a'},rappi:{bg:'#fff0ee',border:'#ff441b',color:'#d63000'},didi:{bg:'#fff5ee',border:'#f87000',color:'#c45f00'}};
@@ -2051,6 +2099,41 @@ function cancelarComandaCompleta(id){
 }
 
 // ── COBRO MODAL ──
+// ── CONFIRMACIÓN COBRO DESDE TICKET ACTIVO ──
+let _pendingCobro=null;
+function mostrarConfirmacionCobro(doCobrar){
+  const t=totales();
+  const mesa=document.getElementById('mesa').value.trim();
+  const mesero=document.getElementById('meseroSel').value||'';
+  const _canalLabels={uber:'Uber Eats',rappi:'Rappi',didi:'DiDi Food'};
+  const pago=currentCanal?_canalLabels[currentCanal]:(currentPago==='Mixto'?`Mixto ($${currentMixtoEf.toLocaleString()} ef / $${currentMixtoTj.toLocaleString()} tj)`:currentPago);
+  _pendingCobro=doCobrar;
+  document.getElementById('confirmCobroMesa').textContent='Mesa '+mesa+(mesero?' · '+mesero:'')+(currentCanal?'':' · '+pago);
+  document.getElementById('confirmCobroDetalle').textContent='$'+t.cobrable.toLocaleString();
+  document.getElementById('modalConfirmarCobro').classList.add('open');
+}
+function ejecutarCobro(){
+  cerrarModal('modalConfirmarCobro');
+  if(_pendingCobro){_pendingCobro(null);_pendingCobro=null;}
+}
+
+// ── OPCIONES RÁPIDAS DESDE MAPA ──
+let _opcionMesaId=null;
+function mostrarOpcionesMesa(id){
+  const c=comandas.find(x=>x.id===id);if(!c)return;
+  _opcionMesaId=id;
+  const canalLabel={uber:'Uber Eats',rappi:'Rappi',didi:'DiDi Food'};
+  const nombreMesa=c.canal?canalLabel[c.canal]:('Mesa '+c.mesa);
+  document.getElementById('mesaOpTitle').textContent=nombreMesa;
+  const mins=Math.floor((Date.now()-c.id)/60000);
+  const tiempo=mins<60?mins+'min':Math.floor(mins/60)+'h'+(mins%60?' '+mins%60+'m':'');
+  document.getElementById('mesaOpInfo').textContent=(c.canal?'':c.mesero+' · ')+tiempo+' · $'+c.total.toLocaleString();
+  document.getElementById('modalMesaOpciones').classList.add('open');
+}
+function opcionEditarMesa(){cerrarModal('modalMesaOpciones');if(_opcionMesaId)editarComanda(_opcionMesaId);}
+function opcionImprimirMesa(){cerrarModal('modalMesaOpciones');if(_opcionMesaId)imprimirCuentaMesa(_opcionMesaId);}
+function opcionCobrarMesa(){cerrarModal('modalMesaOpciones');if(_opcionMesaId)abrirCobro(_opcionMesaId);}
+
 function abrirCobro(id){
   const c=comandas.find(x=>x.id===id);if(!c)return;
   modalIdx=id;modalPropina=0;
@@ -2077,6 +2160,11 @@ function abrirCobro(id){
   document.getElementById('modalMixtoSection').style.display='none';
   const necesitaPin=c.cortesias>0||cancItems.length>0||modalDescuento.tipo!==null;
   document.getElementById('modalAuthSection').style.display=necesitaPin?'block':'none';
+  const _dlvLbls={uber:'Uber Eats',rappi:'Rappi',didi:'DiDi Food'};
+  const esDeliveryModal=!!c.canal;
+  document.getElementById('modalPaySection').style.display=esDeliveryModal?'none':'';
+  document.getElementById('modalDeliveryNotice').style.display=esDeliveryModal?'block':'none';
+  if(esDeliveryModal)document.getElementById('modalDeliveryNotice').textContent='🛵 Pago: '+_dlvLbls[c.canal]+' — se refleja los lunes';
   document.getElementById('modalCobrar').classList.add('open');
 }
 function selPagoModal(el,tipo){
@@ -2163,7 +2251,8 @@ function _ejecutarCobro(autorizadoPor){
   const c=comandas[idx];
   const cancItems=c.items.filter(it=>it.cancelado&&!it._loggedCanc);
   if(cancItems.length){cancelaciones.push({id:Date.now(),mesa:c.mesa,mesero:c.mesero,items:JSON.parse(JSON.stringify(cancItems)),valor:cancItems.reduce((s,it)=>s+it.p*it.q,0),hora:c.hora,fecha:c.fecha||new Date().toLocaleDateString('es-MX'),...(autorizadoPor?{autorizadoPor}:{})});}
-  const pagoStrModal=modalPago==='Mixto'?`Mixto ($${modalMixtoEf.toLocaleString()} ef / $${modalMixtoTj.toLocaleString()} tj)`:modalPago;
+  const _canalLbls={uber:'Uber Eats',rappi:'Rappi',didi:'DiDi Food'};
+  const pagoStrModal=c.canal?_canalLbls[c.canal]:(modalPago==='Mixto'?`Mixto ($${modalMixtoEf.toLocaleString()} ef / $${modalMixtoTj.toLocaleString()} tj)`:modalPago);
   const {bruto,desc,cobrable}=calcDescModal(c);
   const descObj=desc>0?{tipo:modalDescuento.tipo,pct:modalDescuento.pct,valor:desc,...(autorizadoPor?{autorizadoPor}:{})}:null;
   const venta={...c,total:cobrable,subtotal:bruto,descuento:descObj,pago:pagoStrModal,propina:modalPropina,estado:'cerrada',...(modalPago==='Mixto'?{mixtoEf:modalMixtoEf,mixtoTj:modalMixtoTj}:{}),...(autorizadoPor?{autorizadoPor}:{})};
@@ -2345,6 +2434,7 @@ function renderReporte(){
         <td>${v.hora}</td><td>${v.mesa}${exclBadge}</td><td>${v.mesero}</td>
         <td>$${v.total.toLocaleString()}</td><td>${desc}</td><td>${prop}</td><td>${v.pago}</td>
         <td style="white-space:nowrap;">
+          <button class="btn btn-outline btn-sm" onclick="reimprimirVenta(${v.id})" style="font-size:11px;padding:3px 6px;margin:0 2px 0 0;" title="Reimprimir cuenta">🖨</button>
           <button class="btn btn-outline btn-sm" onclick="abrirEditVenta(${v.id})" style="font-size:11px;padding:3px 6px;margin:0 2px 0 0;">✏</button>
           <button class="btn btn-outline btn-sm" onclick="excluirVenta(${v.id})" style="font-size:11px;padding:3px 6px;margin:0;${excl?'border-color:#2d7a2d;color:#2d7a2d;':'border-color:#e24b4a;color:#e24b4a;'}" title="${excl?'Reincorporar':'Excluir del reporte'}">${excl?'↩':'⊘'}</button>
         </td></tr>`;
@@ -2559,11 +2649,14 @@ function renderCierre(){
   document.getElementById('turnoStatus').textContent='';
 }
 
-function abrirTurno(){
+async function abrirTurno(){
   const mesero=document.getElementById('cierreMeseroSel').value;
   if(!mesero){toast('⚠ Selecciona un mesero');return;}
   const hora=new Date().toLocaleTimeString('es-MX',{hour:'2-digit',minute:'2-digit'});
-  try{localStorage.setItem('i_turno_'+mesero,JSON.stringify({hora,ts:Date.now()}));}catch(e){}
+  const ts=Date.now();
+  try{localStorage.setItem('i_turno_'+mesero,JSON.stringify({hora,ts}));}catch(e){}
+  // Guardar también en la nube para acceso desde cualquier dispositivo
+  try{await fetch('/api/turno/entrada',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({nombre:mesero})});}catch(e){}
   document.getElementById('turnoStatus').innerHTML=`<span style="color:#2d7a2d;font-weight:500;">🟢 Turno de ${mesero} abierto a las ${hora}</span>`;
   document.getElementById('cierreParcialStats').innerHTML='';
   document.getElementById('cierreParcialDetalle').innerHTML='';
@@ -2571,12 +2664,25 @@ function abrirTurno(){
   toast('Turno de '+mesero+' abierto — '+hora);
 }
 
-function verCierreParcial(){
+async function verCierreParcial(){
   const mesero=document.getElementById('cierreMeseroSel').value;
   if(!mesero){toast('⚠ Selecciona un mesero');return;}
   const hoy=new Date().toLocaleDateString('es-MX');
   let turnoInfo=null;
   try{turnoInfo=JSON.parse(localStorage.getItem('i_turno_'+mesero)||'null');}catch(e){}
+  // Fallback a la API si no hay info local (turno abierto desde otro dispositivo)
+  if(!turnoInfo){
+    try{
+      const _r=await fetch('/api/turno/hoy');
+      const _d=await _r.json();
+      const _t=(_d.turnos||[]).find(t=>t.nombre===mesero&&t.entrada&&!t.salida);
+      if(_t){
+        const _ts=new Date(_t.entrada).getTime();
+        const _h=new Date(_t.entrada).toLocaleTimeString('es-MX',{hour:'2-digit',minute:'2-digit'});
+        turnoInfo={hora:_h,ts:_ts};
+      }
+    }catch(e){}
+  }
   const turnoDesde=turnoInfo?turnoInfo.ts:0;
   const vMes=ventas.filter(v=>{
     if(new Date(v.id).toLocaleDateString('es-MX')!==hoy)return false;
@@ -4094,7 +4200,7 @@ function iniciarCierre(){
   pedirPin('Cierre del día','Ingresa la contraseña de administrador para ejecutar el cierre.',ejecutarCierre);
 }
 
-function ejecutarCierre(){
+async function ejecutarCierre(){
   const hoy=new Date().toISOString().slice(0,10);
   guardar();
   const txt=generarTextoCierre(hoy);
@@ -4104,6 +4210,12 @@ function ejecutarCierre(){
   a.href=url;a.download=`INSTINTO_cierre_${hoy}.txt`;a.click();
   URL.revokeObjectURL(url);
   toast('Cierre ejecutado — reporte descargado ✓');
+  // Archivar ventas con más de 90 días para mantener la DB ligera
+  try{
+    const ar=await fetch('/api/archivar',{method:'POST',headers:{'Content-Type':'application/json','X-API-Key':API_KEY},body:JSON.stringify({})});
+    const ad=await ar.json();
+    if(ad.archivadas>0)console.log(`📦 Archivadas ${ad.archivadas} ventas antiguas (meses: ${ad.meses.join(', ')})`);
+  }catch(e){console.warn('Archivado silencioso falló:',e.message);}
   renderCierre();switchTab('reporte');
   document.getElementById('filtroDesde').value=hoy;
   document.getElementById('filtroHasta').value=hoy;

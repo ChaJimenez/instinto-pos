@@ -37,9 +37,9 @@ function formatTicket(job) {
   t += LINEA;
 
   job.items.forEach(it => {
-    t += ESC + 'E\x01';
+    t += ESC + '!\x18'; // bold + double height
     t += it.q + 'x  ' + it.n + '\n';
-    t += ESC + 'E\x00';
+    t += ESC + '!\x00'; // reset
     if (it.nota) t += '     > ' + it.nota + '\n';
   });
 
