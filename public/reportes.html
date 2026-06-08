@@ -84,6 +84,23 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 /* Empty / loading */
 .empty{color:#aaa;font-size:13px;text-align:center;padding:32px;}
 .loading-spinner{color:#aaa;font-size:13px;text-align:center;padding:32px;}
+
+/* Export bar */
+.export-bar{display:flex;justify-content:flex-end;margin-bottom:12px;}
+.btn-export{padding:8px 18px;background:#fff;color:#0D2A5E;border:1.5px solid #0D2A5E;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;transition:all .12s;}
+.btn-export:hover{background:#0D2A5E;color:#fff;}
+
+/* Inventory impact */
+.inv-coverage{display:flex;align-items:center;gap:14px;padding:14px 16px;background:#f7f9ff;border-radius:10px;margin-bottom:16px;}
+.inv-coverage-pct{font-size:32px;font-weight:800;color:#0D2A5E;line-height:1;}
+.inv-coverage-label{font-size:12px;color:#888;margin-bottom:4px;}
+.inv-badge-ok{background:#dcfce7;color:#16a34a;font-size:11px;padding:2px 8px;border-radius:8px;font-weight:700;}
+.inv-badge-warn{background:#fef9c3;color:#ca8a04;font-size:11px;padding:2px 8px;border-radius:8px;font-weight:700;}
+.inv-badge-crit{background:#fee2e2;color:#dc2626;font-size:11px;padding:2px 8px;border-radius:8px;font-weight:700;}
+.sin-receta-list{margin-top:14px;padding:12px 14px;background:#fffbeb;border-radius:8px;border:1px solid #fde68a;}
+.sin-receta-title{font-size:11px;font-weight:700;color:#92400e;margin-bottom:8px;text-transform:uppercase;letter-spacing:.04em;}
+.sin-receta-tags{display:flex;flex-wrap:wrap;gap:6px;}
+.sin-receta-tag{font-size:11px;padding:3px 8px;background:#fef3c7;color:#92400e;border-radius:6px;}
 </style>
 </head>
 <body>
@@ -129,6 +146,10 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
       <button class="btn-apply" onclick="applyCustom()">Ver</button>
     </div>
 
+    <div class="export-bar" id="exportBar" style="display:none;">
+      <button class="btn-export" onclick="exportarCSV()">↓ Exportar CSV</button>
+    </div>
+
     <div class="kpi-grid" id="kpiGrid"></div>
 
     <div class="section" id="secPago">
@@ -159,6 +180,11 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
     <div class="section">
       <div class="section-title">Por categoría</div>
       <div id="chartCategoria"><div class="loading-spinner">Cargando...</div></div>
+    </div>
+
+    <div class="section">
+      <div class="section-title">Impacto en inventario</div>
+      <div id="tablaInventario"><div class="loading-spinner">Cargando...</div></div>
     </div>
 
   </div>
@@ -233,7 +259,7 @@ function applyCustom() {
 // ── Loading state ──
 function setLoading() {
   const loading = '<div class="loading-spinner">Cargando...</div>';
-  ['pagoPills','chartDia','chartHora','tablaProductos','tablaMesero','chartCategoria'].forEach(id=>{
+  ['pagoPills','chartDia','chartHora','tablaProductos','tablaMesero','chartCategoria','tablaInventario'].forEach(id=>{
     document.getElementById(id).innerHTML = loading;
   });
   document.getElementById('kpiGrid').innerHTML = [
@@ -241,8 +267,13 @@ function setLoading() {
   ].map(k=>`<div class="kpi-card"><div class="kpi-val">—</div><div class="kpi-label">${k.l}</div></div>`).join('');
 }
 
+// ── Estado global del reporte ──
+let reporteActual = null;
+let periodoActual = {};
+
 // ── Cargar ──
 async function cargarReporte(desde, hasta) {
+  periodoActual = { desde, hasta };
   if (desde === hasta) {
     document.getElementById('headerPeriod').textContent = fmtDLong(desde);
   } else {
@@ -252,6 +283,8 @@ async function cargarReporte(desde, hasta) {
   try {
     const r = await fetch(`/api/reportes?desde=${desde}&hasta=${hasta}`);
     const data = await r.json();
+    reporteActual = data;
+    document.getElementById('exportBar').style.display = 'flex';
     renderKpis(data);
     renderPago(data.porFormaPago || []);
     renderPorDia(data.porDia || []);
@@ -259,10 +292,130 @@ async function cargarReporte(desde, hasta) {
     renderProductos(data.porProducto || []);
     renderMesero(data.porMesero || []);
     renderCategoria(data.porCategoria || []);
+    cargarInventario(desde, hasta);
   } catch(e) {
     document.getElementById('kpiGrid').innerHTML =
       '<div class="kpi-card" style="grid-column:1/-1;text-align:center;color:#e24b4a;padding:20px;">Error al cargar — revisa conexión</div>';
   }
+}
+
+// ── Export CSV ──
+function exportarCSV() {
+  if (!reporteActual) return;
+  const { resumen, porProducto, porCategoria, porDia } = reporteActual;
+  const { desde, hasta } = periodoActual;
+  const totalProd = porProducto.reduce((s, p) => s + p.total, 0) || 1;
+  const totalCat  = porCategoria.reduce((s, c) => s + c.total, 0) || 1;
+
+  const rows = [];
+  rows.push(['REPORTE INSTINTO', '', `${desde} al ${hasta}`]);
+  rows.push([]);
+  rows.push(['RESUMEN']);
+  rows.push(['Total ingresos', resumen.total]);
+  rows.push(['Cuentas', resumen.ventas]);
+  rows.push(['Ticket promedio', resumen.ticketProm]);
+  rows.push([]);
+  rows.push(['VENTAS POR PRODUCTO']);
+  rows.push(['#', 'Producto', 'Categoría', 'Unidades', 'Total MXN', '% del Total']);
+  porProducto.forEach((p, i) => {
+    rows.push([i + 1, p.nombre, p.cat || '', p.unidades, p.total,
+      (p.total / totalProd * 100).toFixed(1) + '%']);
+  });
+  rows.push([]);
+  rows.push(['VENTAS POR CATEGORÍA']);
+  rows.push(['Categoría', 'Unidades', 'Total MXN', '% del Total']);
+  porCategoria.forEach(c => {
+    rows.push([c.cat, c.unidades, c.total, (c.total / totalCat * 100).toFixed(1) + '%']);
+  });
+  rows.push([]);
+  rows.push(['VENTAS POR DÍA']);
+  rows.push(['Fecha', 'Cuentas', 'Total MXN']);
+  porDia.forEach(d => { rows.push([d.fecha, d.ventas, d.total]); });
+
+  const csv = rows.map(r =>
+    r.map(v => `"${String(v === undefined ? '' : v).replace(/"/g, '""')}"`).join(',')
+  ).join('\n');
+  const blob = new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8;' });
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement('a');
+  a.href     = url;
+  a.download = `instinto-reporte-${desde}-${hasta}.csv`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+// ── Inventario ──
+async function cargarInventario(desde, hasta) {
+  try {
+    const r = await fetch(`/api/reportes-inventario?desde=${desde}&hasta=${hasta}`);
+    const data = await r.json();
+    renderInventario(data);
+  } catch(e) {
+    document.getElementById('tablaInventario').innerHTML =
+      '<div class="empty">Error al cargar impacto en inventario</div>';
+  }
+}
+
+function renderInventario({ consumoPorInsumo = [], sinReceta = [], pctCobertura = 0, conReceta = 0, totalPlatillos = 0 }) {
+  const { desde, hasta } = periodoActual;
+  const diasPeriodo = (desde && hasta)
+    ? Math.max(1, Math.round((new Date(hasta + 'T12:00:00') - new Date(desde + 'T12:00:00')) / 86400000) + 1)
+    : 1;
+
+  const coverageBadge = pctCobertura === 100
+    ? `<span class="inv-badge-ok">Cobertura completa</span>`
+    : pctCobertura >= 70
+    ? `<span class="inv-badge-warn">${conReceta}/${totalPlatillos} platillos con receta</span>`
+    : `<span class="inv-badge-crit">${conReceta}/${totalPlatillos} platillos con receta</span>`;
+
+  let html = `
+    <div class="inv-coverage">
+      <div class="inv-coverage-pct">${pctCobertura}%</div>
+      <div>
+        <div class="inv-coverage-label">de tus platillos tienen receta configurada</div>
+        <div>${coverageBadge}</div>
+      </div>
+    </div>`;
+
+  if (!consumoPorInsumo.length) {
+    html += '<div class="empty">Sin recetas configuradas — agrega recetas en el sistema de inventario para ver el impacto.</div>';
+  } else {
+    html += `<table class="rpt-table">
+      <thead><tr>
+        <th>Ingrediente</th>
+        <th>Unidad</th>
+        <th class="num-right">Consumido</th>
+        <th class="num-right">Stock actual</th>
+        <th class="num-right">Días restantes</th>
+      </tr></thead>
+      <tbody>` +
+      consumoPorInsumo.map(ins => {
+        const consumoDia   = ins.consumido / diasPeriodo;
+        const diasRest     = (consumoDia > 0 && ins.stockActual > 0)
+          ? Math.round(ins.stockActual / consumoDia) : null;
+        let diasLabel = '—', diasClass = '';
+        if (diasRest !== null) {
+          diasLabel = diasRest + 'd';
+          diasClass = diasRest <= 2 ? 'inv-badge-crit' : diasRest <= 7 ? 'inv-badge-warn' : 'inv-badge-ok';
+        }
+        return `<tr>
+          <td style="font-weight:500;">${ins.nombre}</td>
+          <td style="color:#888;">${ins.unidad}</td>
+          <td class="num-right">${ins.consumido}</td>
+          <td class="num-right">${ins.stockActual}</td>
+          <td class="num-right">${diasClass ? `<span class="${diasClass}">${diasLabel}</span>` : diasLabel}</td>
+        </tr>`;
+      }).join('') + '</tbody></table>';
+  }
+
+  if (sinReceta.length) {
+    html += `<div class="sin-receta-list">
+      <div class="sin-receta-title">Sin receta — no descuentan inventario</div>
+      <div class="sin-receta-tags">${sinReceta.map(n => `<span class="sin-receta-tag">${n}</span>`).join('')}</div>
+    </div>`;
+  }
+
+  document.getElementById('tablaInventario').innerHTML = html;
 }
 
 // ── KPIs ──

@@ -590,7 +590,7 @@ app.get('/api/reportes', async (req, res) => {
         prodMap[k].total += (it.p || 0) * (it.q || 1);
       });
     });
-    const porProducto = Object.values(prodMap).sort((a, b) => b.total - a.total).slice(0, 30);
+    const porProducto = Object.values(prodMap).sort((a, b) => b.total - a.total);
 
     // Por categoría
     const catMap = {};
@@ -619,6 +619,103 @@ app.get('/api/reportes', async (req, res) => {
   } catch(e) {
     console.error('/api/reportes:', e);
     res.status(500).json({ error: "Error de conexión" });
+  }
+});
+
+// ── Reporte de impacto en inventario ──
+// Cruza ventas del período con recetas e insumos (mismo KV compartido con instinto-inventario)
+app.get('/api/reportes-inventario', async (req, res) => {
+  try {
+    const { desde, hasta } = req.query;
+
+    // Fetch ventas (+ archivos históricos si el rango supera 90 días)
+    let ventas = await kv.get(KEYS.vta) || [];
+    if (desde) {
+      const cutoff = new Date(Date.now() - 90 * 86400000)
+        .toLocaleDateString('sv-SE', { timeZone: 'America/Mexico_City' });
+      if (desde < cutoff) {
+        const meses = new Set();
+        let cursor = new Date(desde + 'T12:00:00');
+        const limite  = new Date(cutoff  + 'T12:00:00');
+        while (cursor <= limite) {
+          meses.add(`${cursor.getFullYear()}-${String(cursor.getMonth()+1).padStart(2,'0')}`);
+          cursor.setMonth(cursor.getMonth() + 1);
+        }
+        const archivos = await Promise.all([...meses].map(m => kv.get(`i:vta:archivo:${m}`)));
+        archivos.forEach(arr => { if (arr && arr.length) ventas = [...ventas, ...arr]; });
+      }
+    }
+
+    const [recetasRaw, insumosRaw] = await Promise.all([
+      kv.get('inv:recetas'),
+      kv.get('inv:insumos'),
+    ]);
+
+    const recetas = recetasRaw || [];
+    const insumos = insumosRaw || [];
+
+    // Mapas de recetas e insumos
+    const recetaMap = {};
+    recetas.forEach(r => { recetaMap[r.platillo] = r.ingredientes || []; });
+    const insumoMap = {};
+    insumos.forEach(i => { insumoMap[i.id] = i; });
+
+    // Filtrar por rango de fechas
+    const filtradas = ventas.filter(v => {
+      const f = normalizarFecha(v);
+      return (!desde || f >= desde) && (!hasta || f <= hasta);
+    });
+
+    // Calcular consumo por insumo y detectar platillos sin receta
+    const consumo = {};
+    const sinReceta = new Set();
+    const prodConteo = {};
+
+    filtradas.forEach(v => {
+      (v.items || []).filter(it => !it.cancelado && !it.n.startsWith('+')).forEach(it => {
+        const qty = it.q || 1;
+        const nombre = it.n;
+        if (!prodConteo[nombre]) prodConteo[nombre] = { nombre, unidades: 0, tieneReceta: false };
+        prodConteo[nombre].unidades += qty;
+
+        const receta = recetaMap[nombre];
+        if (!receta || !receta.length) { sinReceta.add(nombre); return; }
+        prodConteo[nombre].tieneReceta = true;
+        receta.forEach(ing => {
+          consumo[ing.insumoId] = (consumo[ing.insumoId] || 0) + ing.cantidad * qty;
+        });
+      });
+    });
+
+    // Construir lista de consumo por ingrediente
+    const consumoPorInsumo = Object.entries(consumo).map(([insumoId, consumido]) => {
+      const ins = insumoMap[insumoId];
+      const stockActual = ins ? (ins.stock || 0) : 0;
+      const consumidoR  = Math.round(consumido * 1000) / 1000;
+      return {
+        insumoId,
+        nombre:         ins ? ins.nombre : insumoId,
+        unidad:         ins ? ins.unidad  : '',
+        consumido:      consumidoR,
+        stockActual,
+        stockProyectado: Math.max(0, Math.round((stockActual - consumido) * 1000) / 1000),
+      };
+    }).sort((a, b) => b.consumido - a.consumido);
+
+    const totalPlatillos = Object.keys(prodConteo).length;
+    const conReceta = Object.values(prodConteo).filter(p => p.tieneReceta).length;
+
+    res.json({
+      consumoPorInsumo,
+      sinReceta:     [...sinReceta].sort(),
+      totalPlatillos,
+      conReceta,
+      pctCobertura:  totalPlatillos > 0 ? Math.round(conReceta / totalPlatillos * 100) : 0,
+      totalVentas:   filtradas.length,
+    });
+  } catch(e) {
+    console.error('/api/reportes-inventario:', e);
+    res.status(500).json({ error: 'Error de conexión' });
   }
 });
 
