@@ -1066,10 +1066,9 @@ body { font-family: system-ui, -apple-system, sans-serif; background: #f5f5f3; m
 
 <script>
 // ── AUTO-RELOAD: fuerza recarga cuando hay nuevo código desplegado ──
-(function(){try{var V='20260609-1';if(localStorage.getItem('_posV')!==V){localStorage.setItem('_posV',V);location.reload(true);}}catch(e){}})();
+(function(){try{var V='20260615-1';if(localStorage.getItem('_posV')!==V){localStorage.setItem('_posV',V);location.reload(true);}}catch(e){}})();
 
 // ── CONFIGURACIÓN ──
-const PRINT_SERVER = 'http://127.0.0.1:3000';
 const API_KEY = 'instinto-pos-2026';
 function esc(s){const d=document.createElement('div');d.textContent=String(s||'');return d.innerHTML;}
 
@@ -1779,30 +1778,23 @@ async function enviarRecibo(venta){
   }
 }
 
-async function imprimirTicket(venta){
-  for(let i=0;i<3;i++){
-    try{
-      const resp=await fetch(PRINT_SERVER+'/imprimir',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({mesa:venta.mesa,mesero:venta.mesero,hora:venta.hora,fecha:venta.fecha||new Date().toLocaleDateString('es-MX'),items:venta.items,total:venta.total,cortesias:venta.cortesias||0,pago:venta.pago||'',propina:venta.propina||0,preview:venta.preview||false})});
-      const r=await resp.json();
-      if(r.ok){toast('🖨 Ticket impreso ✓');return;}
-    }catch(e){
-      if(i===2)toast('⚠ Servidor de impresión no responde — revisa la computadora de caja');
-      else await new Promise(r=>setTimeout(r,800));
-    }
-  }
-}
-
 async function enviarImpresion(comanda){
+  if(!navigator.onLine){
+    toast('⚠ Sin WiFi — el ticket llegará cuando reconecte');
+    return;
+  }
+  const body=JSON.stringify({mesa:comanda.mesa,mesero:comanda.mesero,hora:comanda.hora,items:comanda.items,comandaId:comanda.id});
+  const delays=[800,2000,4000];
   for(let i=0;i<3;i++){
     try{
-      const resp=await fetch('/api/imprimir',{method:'POST',headers:{'Content-Type':'application/json','X-API-Key':API_KEY},body:JSON.stringify({mesa:comanda.mesa,mesero:comanda.mesero,hora:comanda.hora,items:comanda.items,comandaId:comanda.id})});
+      const resp=await fetch('/api/imprimir',{method:'POST',headers:{'Content-Type':'application/json','X-API-Key':API_KEY},body});
       const r=await resp.json();
-      if(!resp.ok){toast('⚠ Sin impresión — error '+resp.status+' (verifica servidor)');return;}
+      if(!resp.ok){toast('⚠ Sin impresión — error '+resp.status);return;}
       if(r.enviados>0){toast('🖨 Ticket enviado a cocina/barra ✓');return;}
       return;
     }catch(e){
-      if(i===2)toast('⚠ Sin conexión con cocina/barra — revisa el servidor de impresión');
-      else await new Promise(r=>setTimeout(r,800));
+      if(i<2)await new Promise(r=>setTimeout(r,delays[i]));
+      else toast('⚠ Red inestable — ticket no llegó a cocina, guarda la comanda de nuevo');
     }
   }
 }
