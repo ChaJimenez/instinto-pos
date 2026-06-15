@@ -1,0 +1,869 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>INSTINTO POS — Comparativa con el mercado · 2025</title>
+<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800;900&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:'Inter',system-ui,sans-serif;background:#F4F7FC;color:#1a1a2e;line-height:1.5;}
+
+/* ── Hero ── */
+.hero{background:#1a1a2e;color:#fff;padding:72px 40px 64px;text-align:center;position:relative;overflow:hidden;}
+.hero::before{content:'';position:absolute;inset:0;background:radial-gradient(ellipse at 65% 0%,rgba(255,82,82,.13) 0%,transparent 55%),radial-gradient(ellipse at 20% 100%,rgba(59,130,246,.08) 0%,transparent 50%);pointer-events:none;}
+.hero-eyebrow{font-size:11px;font-weight:700;letter-spacing:0.18em;text-transform:uppercase;color:rgba(255,255,255,.4);margin-bottom:16px;}
+.hero-title{font-family:'Montserrat',sans-serif;font-size:clamp(28px,5vw,52px);font-weight:900;line-height:1.1;margin-bottom:20px;}
+.hero-title span{color:#FF5252;}
+.hero-sub{font-size:clamp(14px,2vw,17px);color:rgba(255,255,255,.5);max-width:580px;margin:0 auto 40px;}
+.hero-score{display:inline-flex;align-items:center;gap:10px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);border-radius:100px;padding:10px 24px;}
+.hero-score-num{font-family:'Montserrat',sans-serif;font-size:24px;font-weight:900;color:#4CAF50;}
+.hero-score-lbl{font-size:12px;color:rgba(255,255,255,.45);}
+.hero-badges{display:flex;gap:10px;justify-content:center;flex-wrap:wrap;margin-top:18px;}
+.hero-badge{font-size:11px;padding:5px 14px;border-radius:20px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);color:rgba(255,255,255,.55);}
+
+/* ── Layout ── */
+.container{max-width:1100px;margin:0 auto;padding:0 24px;}
+section{padding:64px 0 32px;}
+
+/* ── Section headers ── */
+.sec-label{font-size:10px;font-weight:700;letter-spacing:0.18em;text-transform:uppercase;color:#aaa;margin-bottom:10px;}
+.sec-title{font-family:'Montserrat',sans-serif;font-size:clamp(22px,3vw,32px);font-weight:800;color:#1a1a2e;margin-bottom:10px;line-height:1.2;}
+.sec-desc{font-size:15px;color:#666;max-width:660px;margin-bottom:40px;line-height:1.65;}
+
+/* ── Toast Deep Dive ── */
+.toast-hero{background:#fff;border-radius:20px;overflow:hidden;box-shadow:0 4px 40px rgba(0,0,0,.07);}
+.toast-header{background:linear-gradient(135deg,#FF4500 0%,#FF6B35 100%);padding:32px 36px 28px;color:#fff;position:relative;overflow:hidden;}
+.toast-header::after{content:'TOAST';position:absolute;right:-10px;bottom:-20px;font-family:'Montserrat',sans-serif;font-size:120px;font-weight:900;opacity:.06;letter-spacing:-4px;pointer-events:none;}
+.toast-header-title{font-family:'Montserrat',sans-serif;font-size:24px;font-weight:800;margin-bottom:4px;}
+.toast-header-sub{font-size:13px;opacity:.7;margin-bottom:14px;}
+.toast-score-pill{display:inline-block;background:rgba(255,255,255,.2);border:1px solid rgba(255,255,255,.3);border-radius:20px;padding:6px 18px;font-size:13px;font-weight:700;}
+.toast-body{padding:36px;}
+
+.toast-col-grid{display:grid;grid-template-columns:1fr 1fr;gap:32px;margin-bottom:36px;}
+.toast-col h4{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:#aaa;margin-bottom:16px;padding-bottom:8px;border-bottom:2px solid #F0F4F8;}
+.toast-feature{display:flex;align-items:flex-start;gap:12px;margin-bottom:16px;}
+.tf-icon{width:34px;height:34px;border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:15px;flex-shrink:0;margin-top:1px;}
+.tf-icon.g{background:#E8F5E9;}
+.tf-icon.r{background:#FFF5F5;}
+.tf-icon.a{background:#FFF8E1;}
+.tf-body strong{font-size:13px;font-weight:600;color:#1a1a2e;display:block;margin-bottom:3px;}
+.tf-body span{font-size:12px;color:#888;line-height:1.5;}
+
+/* UX comparison bars */
+.ux-section{margin-top:36px;}
+.ux-section h3{font-size:15px;font-weight:700;color:#1a1a2e;margin-bottom:6px;}
+.ux-section p{font-size:13px;color:#888;margin-bottom:20px;}
+.ux-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;}
+.ux-card{background:#F8FAFB;border:1px solid #E8ECF0;border-radius:14px;padding:20px;}
+.ux-card h5{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:#aaa;margin-bottom:14px;}
+.ux-row{margin-bottom:12px;}
+.ux-labels{display:flex;justify-content:space-between;margin-bottom:4px;}
+.ux-name{font-size:12px;color:#555;}
+.ux-score{font-size:11px;font-weight:700;}
+.ux-score.toast{color:#FF4500;}
+.ux-score.inst{color:#1a1a2e;}
+.ux-track{height:5px;background:#E8ECF0;border-radius:3px;overflow:hidden;}
+.ux-fill{height:100%;border-radius:3px;}
+.ux-fill.toast{background:#FF4500;}
+.ux-fill.inst{background:#1a1a2e;}
+.ux-divider{height:1px;background:#E8ECF0;margin:10px 0;}
+
+/* lesson box */
+.lesson-box{background:#F8FAFB;border:1px solid #E0E8F0;border-left:4px solid #1a1a2e;border-radius:0 12px 12px 0;padding:20px 24px;margin-top:28px;}
+.lesson-box h4{font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:#888;margin-bottom:8px;}
+.lesson-box p{font-size:14px;color:#444;line-height:1.7;}
+
+/* ── Score Matrix ── */
+.matrix-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch;}
+.matrix-table{width:100%;border-collapse:collapse;background:#fff;border-radius:16px;overflow:hidden;box-shadow:0 2px 24px rgba(0,0,0,.05);min-width:760px;}
+.matrix-table th{padding:13px 14px;text-align:left;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.07em;color:#888;background:#F8FAFB;border-bottom:2px solid #E8ECF0;white-space:nowrap;}
+.matrix-table th.hl{background:#1a1a2e;color:rgba(255,255,255,.55);}
+.matrix-table td{padding:11px 14px;border-bottom:1px solid #F0F4F8;font-size:13px;vertical-align:middle;}
+.matrix-table tr:last-child td{border-bottom:none;}
+.matrix-table tr:hover td{background:#FAFBFD;}
+.cat-row td{background:#F8FAFB!important;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.09em;color:#888;padding:9px 14px;}
+.feat-name{font-weight:600;color:#1a1a2e;}
+.feat-sub{font-size:11px;color:#bbb;margin-top:1px;}
+.instinto-row td{background:#F0F5FF!important;}
+.instinto-row td:first-child{border-left:3px solid #1a1a2e;}
+.sc{text-align:center;font-weight:700;}
+.sc.i{background:#EEF3FF!important;color:#1a1a2e;}
+.tag{display:inline-block;font-size:10px;font-weight:700;border-radius:4px;padding:2px 7px;}
+.tag.y{background:#E8F5E9;color:#2d7a2d;}
+.tag.n{background:#FFF0F0;color:#e24b4a;}
+.tag.p{background:#FFF8E1;color:#b06800;}
+.tag.na{background:#F0F4F8;color:#aaa;}
+.tag.wip{background:#FFF3CD;color:#856404;}
+.total-row td{background:#1a1a2e!important;color:#fff;font-weight:700;}
+.total-row td.best{color:#4CAF50;font-size:20px;}
+.total-row td.toast-c{color:#FF6B35;font-size:18px;}
+.total-row td.mid{color:rgba(255,255,255,.6);font-size:15px;}
+
+/* ── Brechas ── */
+.brecha-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(290px,1fr));gap:16px;}
+.brecha-card{background:#fff;border-radius:16px;padding:24px;border:1px solid #E8ECF0;box-shadow:0 2px 10px rgba(0,0,0,.04);}
+.brecha-card.done{border-left:4px solid #2d7a2d;}
+.brecha-card.wip{border-left:4px solid #F5A020;}
+.brecha-card.next{border-left:4px solid #e24b4a;}
+.bc-tag{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;padding:3px 10px;border-radius:20px;display:inline-block;margin-bottom:12px;}
+.bc-tag.done{background:#E8F5E9;color:#2d7a2d;}
+.bc-tag.wip{background:#FFF3CD;color:#856404;}
+.bc-tag.next{background:#FFF0F0;color:#e24b4a;}
+.bc-title{font-size:15px;font-weight:700;color:#1a1a2e;margin-bottom:6px;}
+.bc-desc{font-size:13px;color:#777;line-height:1.55;}
+.bc-arrow{font-size:12px;font-weight:600;color:#1a1a2e;margin-top:12px;}
+
+/* ── Deliverect ── */
+.deliverect-box{background:linear-gradient(135deg,#0F3460 0%,#1a1a2e 100%);border-radius:20px;padding:40px 40px 36px;color:#fff;position:relative;overflow:hidden;}
+.deliverect-box::after{content:'DELIVERY';position:absolute;right:-20px;bottom:-24px;font-family:'Montserrat',sans-serif;font-size:100px;font-weight:900;opacity:.04;letter-spacing:-3px;pointer-events:none;}
+.deliverect-box h3{font-family:'Montserrat',sans-serif;font-size:22px;font-weight:800;margin-bottom:8px;}
+.deliverect-box p{font-size:14px;color:rgba(255,255,255,.6);max-width:600px;line-height:1.65;margin-bottom:28px;}
+.dstep-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:14px;}
+.dstep{background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.1);border-radius:12px;padding:18px;}
+.dstep-n{font-size:10px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:rgba(255,255,255,.35);margin-bottom:6px;}
+.dstep-t{font-size:13px;font-weight:700;margin-bottom:5px;}
+.dstep-d{font-size:11px;color:rgba(255,255,255,.5);line-height:1.45;}
+.dstep-badge{display:inline-block;font-size:10px;font-weight:700;padding:2px 9px;border-radius:10px;margin-top:10px;}
+.dstep-badge.g{background:#1B4D2E;color:#69F0AE;}
+.dstep-badge.a{background:#4A3200;color:#FFD54F;}
+
+/* ── Ventajas ── */
+.ventajas-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;}
+.vc{background:#fff;border-radius:14px;padding:22px;border:1px solid #E8ECF0;}
+.vc-icon{font-size:24px;margin-bottom:10px;}
+.vc h4{font-size:13px;font-weight:700;color:#1a1a2e;margin-bottom:6px;}
+.vc p{font-size:12px;color:#777;line-height:1.55;}
+
+/* ── Veredicto ── */
+.verdict{background:#1a1a2e;border-radius:20px;padding:48px 40px;color:#fff;text-align:center;position:relative;overflow:hidden;}
+.verdict::before{content:'';position:absolute;inset:0;background:radial-gradient(ellipse at 80% 20%,rgba(255,82,82,.08) 0%,transparent 50%);pointer-events:none;}
+.verdict h2{font-family:'Montserrat',sans-serif;font-size:clamp(20px,3vw,30px);font-weight:900;margin-bottom:14px;}
+.verdict p{font-size:15px;color:rgba(255,255,255,.55);max-width:660px;margin:0 auto 36px;line-height:1.65;}
+.vs-row{display:flex;justify-content:center;gap:28px;flex-wrap:wrap;align-items:flex-end;}
+.vs-item{text-align:center;}
+.vs-num{font-family:'Montserrat',sans-serif;font-size:40px;font-weight:900;line-height:1;}
+.vs-lbl{font-size:11px;color:rgba(255,255,255,.35);margin-top:6px;line-height:1.4;}
+.vs-item.green .vs-num{color:#4CAF50;}
+.vs-item.orange .vs-num{color:#FF6B35;}
+.vs-item.dim .vs-num{color:rgba(255,255,255,.4);font-size:28px;}
+.vs-sep{font-size:20px;color:rgba(255,255,255,.15);padding-bottom:12px;}
+
+/* ── Responsive ── */
+@media(max-width:720px){
+  .hero{padding:48px 20px 40px;}
+  .toast-col-grid,.ux-grid,.ventajas-grid{grid-template-columns:1fr;}
+  .toast-body{padding:20px;}
+  .verdict{padding:32px 20px;}
+  .container{padding:0 16px;}
+  section{padding:48px 0 24px;}
+}
+</style>
+</head>
+<body>
+
+<!-- ═══ HERO ═══ -->
+<div class="hero">
+  <div class="hero-eyebrow">Análisis competitivo · 2025</div>
+  <h1 class="hero-title">INSTINTO POS<br>vs. <span>El mundo real</span></h1>
+  <p class="hero-sub">Comparativa honesta contra los mejores sistemas del mercado. Toast, Lightspeed, Square, Toteat y más — con foco especial en diseño visual.</p>
+  <div class="hero-score">
+    <span class="hero-score-num">81</span>
+    <span class="hero-score-lbl">/ 100 — INSTINTO POS · mayo 2025</span>
+  </div>
+  <div class="hero-badges">
+    <span class="hero-badge">✓ Offline mode</span>
+    <span class="hero-badge">✓ KPI Cocina en vivo</span>
+    <span class="hero-badge">✓ Auth gerencial</span>
+    <span class="hero-badge">✓ $0/mes de por vida</span>
+    <span class="hero-badge">⏳ Delivery vía Deliverect</span>
+  </div>
+</div>
+
+<!-- ═══ TOAST DEEP DIVE ═══ -->
+<section>
+  <div class="container">
+    <div class="sec-label">Análisis especial</div>
+    <h2 class="sec-title">Toast — Por qué es el estándar visual</h2>
+    <p class="sec-desc">Toast tiene 106,000 restaurantes en EE.UU. y dicta lo que un POS moderno debe verse y sentirse. Entender exactamente por qué es tan bueno define a qué aspirar.</p>
+
+    <div class="toast-hero">
+      <div class="toast-header">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:16px;">
+          <div>
+            <div class="toast-header-title">Toast POS</div>
+            <div class="toast-header-sub">Boston, MA · 2012 · 106,000+ restaurantes activos en EE.UU.</div>
+            <div class="toast-score-pill">93 / 100 — #1 del mercado norteamericano</div>
+          </div>
+          <div style="text-align:right;">
+            <div style="font-size:30px;font-weight:900;color:#fff;font-family:'Montserrat',sans-serif;">$165–$285</div>
+            <div style="font-size:12px;opacity:.6;">USD/mes + hardware propio</div>
+            <div style="font-size:11px;opacity:.45;margin-top:3px;">No disponible en México</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="toast-body">
+
+        <!-- Filosofía de diseño -->
+        <div style="background:#FFF8F5;border:1px solid #FFD5C0;border-radius:12px;padding:20px 24px;margin-bottom:32px;">
+          <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:#FF4500;margin-bottom:8px;">Filosofía de diseño de Toast</div>
+          <p style="font-size:14px;color:#444;line-height:1.7;max-width:720px;"><strong>Principio rector:</strong> "El mesero más lento del equipo debe dominar el sistema en 15 minutos." Esto derivó en un sistema obsesionado con el tamaño de toque, semántica de color y jerarquía visual extrema — lo opuesto al software empresarial tradicional. Cada píxel tiene un propósito operativo.</p>
+        </div>
+
+        <div class="toast-col-grid">
+          <!-- Lo que hace bien -->
+          <div>
+            <h4>✅ Lo que Toast hace excepcionalmente bien</h4>
+            <div class="toast-feature">
+              <div class="tf-icon g">🖐</div>
+              <div class="tf-body">
+                <strong>Botones de toque 60 × 60 px mínimo</strong>
+                <span>Diseñados para dedos con guantes, manos mojadas, cocinas ruidosas. Error de toque = cero. Cada botón tiene al menos ese tamaño — sin excepciones.</span>
+              </div>
+            </div>
+            <div class="toast-feature">
+              <div class="tf-icon g">🌈</div>
+              <div class="tf-body">
+                <strong>Semántica operativa por color</strong>
+                <span>Verde = confirmado. Rojo = urgente / cancelado. Amarillo = pendiente. Consistente en todas las pantallas. El personal entiende el estado sin leer una palabra.</span>
+              </div>
+            </div>
+            <div class="toast-feature">
+              <div class="tf-icon g">📋</div>
+              <div class="tf-body">
+                <strong>KDS con bump físico + timers visuales</strong>
+                <span>El KDS de Toast puede conectarse a botones físicos de bump. Los colores cambian automáticamente con el tiempo: azul → amarillo → rojo. Sin configuración manual.</span>
+              </div>
+            </div>
+            <div class="toast-feature">
+              <div class="tf-icon g">⚡</div>
+              <div class="tf-body">
+                <strong>Offline total sobre LAN local</strong>
+                <span>Cuando cae internet, Toast opera sobre red local. Los pedidos se sincronizan en cuanto regresa la conexión. El servicio nunca se detiene.</span>
+              </div>
+            </div>
+            <div class="toast-feature">
+              <div class="tf-icon g">📊</div>
+              <div class="tf-body">
+                <strong>App móvil nativa para el gerente</strong>
+                <span>Dashboard separado en iOS/Android. Ventas del día, labor cost, comparativa vs. ayer — sin tocar la caja. El dueño puede ver todo desde fuera del local.</span>
+              </div>
+            </div>
+            <div class="toast-feature">
+              <div class="tf-icon g">🔔</div>
+              <div class="tf-body">
+                <strong>Alertas push proactivas</strong>
+                <span>Mesa con 45+ min, inventario bajo del mínimo, cancelaciones inusuales — el sistema avisa solo, sin que nadie revise activamente.</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Lo que falla -->
+          <div>
+            <h4>❌ Dónde Toast falla (o no aplica)</h4>
+            <div class="toast-feature">
+              <div class="tf-icon r">💰</div>
+              <div class="tf-body">
+                <strong>$165–$285 USD/mes + hardware</strong>
+                <span>Para INSTINTO: $2,800–$5,000 MXN/mes, más la comisión por transacción del 2.49% en tarjeta. En 3 unidades: $250,000+ MXN al año solo en licencias.</span>
+              </div>
+            </div>
+            <div class="toast-feature">
+              <div class="tf-icon r">🌎</div>
+              <div class="tf-body">
+                <strong>Solo EE.UU. y Canadá</strong>
+                <span>No opera en México. Sin soporte real en español. Sin integración SAT/CFDI. Imposible en la práctica para cualquier restaurante mexicano.</span>
+              </div>
+            </div>
+            <div class="toast-feature">
+              <div class="tf-icon r">🔒</div>
+              <div class="tf-body">
+                <strong>Hardware propietario obligatorio</strong>
+                <span>Toast Go 2, Toast Flex — solo funcionan con Toast. Si cambias de sistema, el hardware queda inútil. Lock-in total, por diseño.</span>
+              </div>
+            </div>
+            <div class="toast-feature">
+              <div class="tf-icon a">🍕</div>
+              <div class="tf-body">
+                <strong>Complejo para restaurantes independientes</strong>
+                <span>Diseñado para cadenas de 50+ unidades. Para un restaurante de hamburguesas independiente, hay capas, menús y configuraciones completamente innecesarias.</span>
+              </div>
+            </div>
+            <div class="toast-feature">
+              <div class="tf-icon a">📱</div>
+              <div class="tf-body">
+                <strong>No corre en hardware genérico</strong>
+                <span>Requiere tablets Toast certificadas. Un iPad o Android genérico no funciona. El precio del hardware es parte del modelo de negocio de Toast, no un extra.</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- UX Bars -->
+        <div class="ux-section">
+          <h3>Desglose visual: Toast vs INSTINTO POS</h3>
+          <p>Comparativa dimensión por dimensión de la interfaz. Escala 0–10. <span style="color:#FF4500;font-weight:600;">■ Toast</span> &nbsp; <span style="color:#1a1a2e;font-weight:600;">■ INSTINTO</span></p>
+          <div class="ux-grid">
+
+            <div class="ux-card">
+              <h5>Pantalla de Caja</h5>
+
+              <div class="ux-row">
+                <div class="ux-labels">
+                  <span class="ux-name">Tamaño de botones de menú</span>
+                </div>
+                <div style="display:flex;gap:8px;align-items:center;margin-bottom:3px;">
+                  <div class="ux-track" style="flex:1;"><div class="ux-fill toast" style="width:95%;"></div></div>
+                  <span class="ux-score toast">9.5</span>
+                </div>
+                <div style="display:flex;gap:8px;align-items:center;">
+                  <div class="ux-track" style="flex:1;"><div class="ux-fill inst" style="width:72%;"></div></div>
+                  <span class="ux-score inst">7.2</span>
+                </div>
+              </div>
+              <div class="ux-divider"></div>
+
+              <div class="ux-row">
+                <div class="ux-labels"><span class="ux-name">Jerarquía visual</span></div>
+                <div style="display:flex;gap:8px;align-items:center;margin-bottom:3px;">
+                  <div class="ux-track" style="flex:1;"><div class="ux-fill toast" style="width:90%;"></div></div>
+                  <span class="ux-score toast">9.0</span>
+                </div>
+                <div style="display:flex;gap:8px;align-items:center;">
+                  <div class="ux-track" style="flex:1;"><div class="ux-fill inst" style="width:70%;"></div></div>
+                  <span class="ux-score inst">7.0</span>
+                </div>
+              </div>
+              <div class="ux-divider"></div>
+
+              <div class="ux-row">
+                <div class="ux-labels"><span class="ux-name">Velocidad al cobrar</span></div>
+                <div style="display:flex;gap:8px;align-items:center;margin-bottom:3px;">
+                  <div class="ux-track" style="flex:1;"><div class="ux-fill toast" style="width:92%;"></div></div>
+                  <span class="ux-score toast">9.2</span>
+                </div>
+                <div style="display:flex;gap:8px;align-items:center;">
+                  <div class="ux-track" style="flex:1;"><div class="ux-fill inst" style="width:80%;"></div></div>
+                  <span class="ux-score inst">8.0</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="ux-card">
+              <h5>Pantalla de Cocina (KDS)</h5>
+
+              <div class="ux-row">
+                <div class="ux-labels"><span class="ux-name">Legibilidad bajo presión</span></div>
+                <div style="display:flex;gap:8px;align-items:center;margin-bottom:3px;">
+                  <div class="ux-track" style="flex:1;"><div class="ux-fill toast" style="width:95%;"></div></div>
+                  <span class="ux-score toast">9.5</span>
+                </div>
+                <div style="display:flex;gap:8px;align-items:center;">
+                  <div class="ux-track" style="flex:1;"><div class="ux-fill inst" style="width:88%;"></div></div>
+                  <span class="ux-score inst">8.8</span>
+                </div>
+              </div>
+              <div class="ux-divider"></div>
+
+              <div class="ux-row">
+                <div class="ux-labels"><span class="ux-name">KPIs en tiempo real</span></div>
+                <div style="display:flex;gap:8px;align-items:center;margin-bottom:3px;">
+                  <div class="ux-track" style="flex:1;"><div class="ux-fill toast" style="width:90%;"></div></div>
+                  <span class="ux-score toast">9.0</span>
+                </div>
+                <div style="display:flex;gap:8px;align-items:center;">
+                  <div class="ux-track" style="flex:1;"><div class="ux-fill inst" style="width:85%;"></div></div>
+                  <span class="ux-score inst">8.5</span>
+                </div>
+              </div>
+              <div class="ux-divider"></div>
+
+              <div class="ux-row">
+                <div class="ux-labels"><span class="ux-name">Alertas visuales de urgencia</span></div>
+                <div style="display:flex;gap:8px;align-items:center;margin-bottom:3px;">
+                  <div class="ux-track" style="flex:1;"><div class="ux-fill toast" style="width:93%;"></div></div>
+                  <span class="ux-score toast">9.3</span>
+                </div>
+                <div style="display:flex;gap:8px;align-items:center;">
+                  <div class="ux-track" style="flex:1;"><div class="ux-fill inst" style="width:82%;"></div></div>
+                  <span class="ux-score inst">8.2</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="ux-card">
+              <h5>Dashboard Gerencial</h5>
+
+              <div class="ux-row">
+                <div class="ux-labels"><span class="ux-name">Claridad de datos</span></div>
+                <div style="display:flex;gap:8px;align-items:center;margin-bottom:3px;">
+                  <div class="ux-track" style="flex:1;"><div class="ux-fill toast" style="width:92%;"></div></div>
+                  <span class="ux-score toast">9.2</span>
+                </div>
+                <div style="display:flex;gap:8px;align-items:center;">
+                  <div class="ux-track" style="flex:1;"><div class="ux-fill inst" style="width:80%;"></div></div>
+                  <span class="ux-score inst">8.0</span>
+                </div>
+              </div>
+              <div class="ux-divider"></div>
+
+              <div class="ux-row">
+                <div class="ux-labels"><span class="ux-name">App móvil nativa</span></div>
+                <div style="display:flex;gap:8px;align-items:center;margin-bottom:3px;">
+                  <div class="ux-track" style="flex:1;"><div class="ux-fill toast" style="width:100%;"></div></div>
+                  <span class="ux-score toast">10</span>
+                </div>
+                <div style="display:flex;gap:8px;align-items:center;">
+                  <div class="ux-track" style="flex:1;"><div class="ux-fill inst" style="width:0%;"></div></div>
+                  <span class="ux-score" style="color:#e24b4a;">—</span>
+                </div>
+              </div>
+              <div class="ux-divider"></div>
+
+              <div class="ux-row">
+                <div class="ux-labels"><span class="ux-name">Comparativa periodos</span></div>
+                <div style="display:flex;gap:8px;align-items:center;margin-bottom:3px;">
+                  <div class="ux-track" style="flex:1;"><div class="ux-fill toast" style="width:90%;"></div></div>
+                  <span class="ux-score toast">9.0</span>
+                </div>
+                <div style="display:flex;gap:8px;align-items:center;">
+                  <div class="ux-track" style="flex:1;"><div class="ux-fill inst" style="width:72%;"></div></div>
+                  <span class="ux-score inst">7.2</span>
+                </div>
+              </div>
+            </div>
+
+          </div>
+        </div><!-- /ux-section -->
+
+        <!-- Lección -->
+        <div class="lesson-box">
+          <h4>La lección de Toast para INSTINTO POS</h4>
+          <p>El gap visual más grande no está en funcionalidad — está en <strong>dos cosas concretas</strong>: (1) el tamaño de los targets táctiles en el menú de productos (actualmente ~44px, Toast usa 60px), y (2) la falta de una vista gerencial en el teléfono. Agrandar los botones del grid de platillos y construir una PWA de solo-lectura para el dueño cerraría el 80% del gap visual con Toast. Ambas mejoras se hacen sin tocar la arquitectura del sistema.</p>
+        </div>
+
+      </div><!-- /toast-body -->
+    </div><!-- /toast-hero -->
+  </div>
+</section>
+
+<!-- ═══ MATRIZ COMPARATIVA ═══ -->
+<section style="padding-top:0;">
+  <div class="container">
+    <div class="sec-label">Comparativa completa</div>
+    <h2 class="sec-title">Matriz de funcionalidades</h2>
+    <p class="sec-desc">INSTINTO POS vs. 6 sistemas del mercado en las dimensiones que importan para un restaurante independiente de alto volumen en México.</p>
+
+    <div class="matrix-wrap">
+      <table class="matrix-table">
+        <thead>
+          <tr>
+            <th style="min-width:220px;">Funcionalidad</th>
+            <th class="hl" style="text-align:center;min-width:90px;">INSTINTO</th>
+            <th style="text-align:center;min-width:72px;">Toast</th>
+            <th style="text-align:center;min-width:72px;">Lightspeed</th>
+            <th style="text-align:center;min-width:72px;">Square</th>
+            <th style="text-align:center;min-width:72px;">Toteat MX</th>
+            <th style="text-align:center;min-width:72px;">SambaPOS</th>
+            <th style="text-align:center;min-width:72px;">Poster</th>
+          </tr>
+        </thead>
+        <tbody>
+
+          <!-- Operación -->
+          <tr class="cat-row"><td colspan="8">Operación diaria</td></tr>
+
+          <tr class="instinto-row">
+            <td><div class="feat-name">Mapa de mesas visual</div><div class="feat-sub">Estado del salón en tiempo real</div></td>
+            <td class="sc i"><span class="tag y">✓</span></td>
+            <td class="sc"><span class="tag y">✓</span></td>
+            <td class="sc"><span class="tag y">✓</span></td>
+            <td class="sc"><span class="tag p">≈</span></td>
+            <td class="sc"><span class="tag y">✓</span></td>
+            <td class="sc"><span class="tag y">✓</span></td>
+            <td class="sc"><span class="tag y">✓</span></td>
+          </tr>
+
+          <tr class="instinto-row">
+            <td><div class="feat-name">KDS con KPIs y timers</div><div class="feat-sub">Pantalla cocina con alertas de urgencia</div></td>
+            <td class="sc i"><span class="tag y">✓</span></td>
+            <td class="sc"><span class="tag y">✓</span></td>
+            <td class="sc"><span class="tag y">✓</span></td>
+            <td class="sc"><span class="tag n">✗</span></td>
+            <td class="sc"><span class="tag p">≈</span></td>
+            <td class="sc"><span class="tag y">✓</span></td>
+            <td class="sc"><span class="tag y">✓</span></td>
+          </tr>
+
+          <tr class="instinto-row">
+            <td><div class="feat-name">Cancelaciones con auth gerente</div><div class="feat-sub">Flujo mesero + autorización diferida al cobrar</div></td>
+            <td class="sc i"><span class="tag y">✓</span></td>
+            <td class="sc"><span class="tag y">✓</span></td>
+            <td class="sc"><span class="tag y">✓</span></td>
+            <td class="sc"><span class="tag p">≈</span></td>
+            <td class="sc"><span class="tag p">≈</span></td>
+            <td class="sc"><span class="tag y">✓</span></td>
+            <td class="sc"><span class="tag y">✓</span></td>
+          </tr>
+
+          <tr class="instinto-row">
+            <td><div class="feat-name">Modo offline completo</div><div class="feat-sub">Sin internet, sin interrupciones al servicio</div></td>
+            <td class="sc i"><span class="tag y">✓</span></td>
+            <td class="sc"><span class="tag y">✓</span></td>
+            <td class="sc"><span class="tag p">≈</span></td>
+            <td class="sc"><span class="tag p">≈</span></td>
+            <td class="sc"><span class="tag n">✗</span></td>
+            <td class="sc"><span class="tag y">✓</span></td>
+            <td class="sc"><span class="tag p">≈</span></td>
+          </tr>
+
+          <tr class="instinto-row">
+            <td><div class="feat-name">Cortesías con log auditado</div><div class="feat-sub">Autorización gerente + registro permanente</div></td>
+            <td class="sc i"><span class="tag y">✓</span></td>
+            <td class="sc"><span class="tag y">✓</span></td>
+            <td class="sc"><span class="tag y">✓</span></td>
+            <td class="sc"><span class="tag n">✗</span></td>
+            <td class="sc"><span class="tag p">≈</span></td>
+            <td class="sc"><span class="tag y">✓</span></td>
+            <td class="sc"><span class="tag y">✓</span></td>
+          </tr>
+
+          <tr class="instinto-row">
+            <td><div class="feat-name">Turno por mesero</div><div class="feat-sub">Apertura, cierre, reporte de turno</div></td>
+            <td class="sc i"><span class="tag y">✓</span></td>
+            <td class="sc"><span class="tag y">✓</span></td>
+            <td class="sc"><span class="tag y">✓</span></td>
+            <td class="sc"><span class="tag p">≈</span></td>
+            <td class="sc"><span class="tag y">✓</span></td>
+            <td class="sc"><span class="tag y">✓</span></td>
+            <td class="sc"><span class="tag y">✓</span></td>
+          </tr>
+
+          <!-- Reportes -->
+          <tr class="cat-row"><td colspan="8">Reportes y análisis</td></tr>
+
+          <tr class="instinto-row">
+            <td><div class="feat-name">Ventas por período / mesero</div><div class="feat-sub">Hoy, semana, mes, custom, ranking</div></td>
+            <td class="sc i"><span class="tag y">✓</span></td>
+            <td class="sc"><span class="tag y">✓</span></td>
+            <td class="sc"><span class="tag y">✓</span></td>
+            <td class="sc"><span class="tag y">✓</span></td>
+            <td class="sc"><span class="tag y">✓</span></td>
+            <td class="sc"><span class="tag p">≈</span></td>
+            <td class="sc"><span class="tag y">✓</span></td>
+          </tr>
+
+          <tr class="instinto-row">
+            <td><div class="feat-name">Food cost por platillo</div><div class="feat-sub">Margen real en tiempo real</div></td>
+            <td class="sc i"><span class="tag y">✓</span></td>
+            <td class="sc"><span class="tag y">✓</span></td>
+            <td class="sc"><span class="tag y">✓</span></td>
+            <td class="sc"><span class="tag n">✗</span></td>
+            <td class="sc"><span class="tag p">≈</span></td>
+            <td class="sc"><span class="tag p">≈</span></td>
+            <td class="sc"><span class="tag y">✓</span></td>
+          </tr>
+
+          <tr class="instinto-row">
+            <td><div class="feat-name">Control de inventario</div><div class="feat-sub">Stock, compras, mermas, alertas</div></td>
+            <td class="sc i"><span class="tag y">✓</span></td>
+            <td class="sc"><span class="tag y">✓</span></td>
+            <td class="sc"><span class="tag y">✓</span></td>
+            <td class="sc"><span class="tag p">≈</span></td>
+            <td class="sc"><span class="tag p">≈</span></td>
+            <td class="sc"><span class="tag p">≈</span></td>
+            <td class="sc"><span class="tag y">✓</span></td>
+          </tr>
+
+          <tr class="instinto-row">
+            <td><div class="feat-name">Dashboard gerencial en móvil</div><div class="feat-sub">App o PWA para el dueño fuera del local</div></td>
+            <td class="sc i" style="background:#FFF8E1!important;"><span class="tag wip">Pendiente</span></td>
+            <td class="sc"><span class="tag y">✓</span></td>
+            <td class="sc"><span class="tag y">✓</span></td>
+            <td class="sc"><span class="tag y">✓</span></td>
+            <td class="sc"><span class="tag p">≈</span></td>
+            <td class="sc"><span class="tag n">✗</span></td>
+            <td class="sc"><span class="tag p">≈</span></td>
+          </tr>
+
+          <tr class="instinto-row">
+            <td><div class="feat-name">Gastos operativos</div><div class="feat-sub">Registro con comprobante fotográfico</div></td>
+            <td class="sc i"><span class="tag y">✓</span></td>
+            <td class="sc"><span class="tag y">✓</span></td>
+            <td class="sc"><span class="tag y">✓</span></td>
+            <td class="sc"><span class="tag p">≈</span></td>
+            <td class="sc"><span class="tag p">≈</span></td>
+            <td class="sc"><span class="tag n">✗</span></td>
+            <td class="sc"><span class="tag y">✓</span></td>
+          </tr>
+
+          <!-- Integraciones -->
+          <tr class="cat-row"><td colspan="8">Integraciones externas</td></tr>
+
+          <tr class="instinto-row">
+            <td><div class="feat-name">Delivery (Rappi / UberEats / DiDi)</div><div class="feat-sub">Pedidos delivery dentro del POS</div></td>
+            <td class="sc i" style="background:#FFF8E1!important;"><span class="tag wip">⏳ Deliverect</span></td>
+            <td class="sc"><span class="tag y">✓</span></td>
+            <td class="sc"><span class="tag y">✓</span></td>
+            <td class="sc"><span class="tag y">✓</span></td>
+            <td class="sc"><span class="tag y">✓</span></td>
+            <td class="sc"><span class="tag n">✗</span></td>
+            <td class="sc"><span class="tag p">≈</span></td>
+          </tr>
+
+          <tr class="instinto-row">
+            <td><div class="feat-name">CRM / Fidelización</div><div class="feat-sub">Cumpleaños, visitas, recompensas</div></td>
+            <td class="sc i" style="background:#FFF8E1!important;"><span class="tag wip">Próximo</span></td>
+            <td class="sc"><span class="tag y">✓</span></td>
+            <td class="sc"><span class="tag y">✓</span></td>
+            <td class="sc"><span class="tag p">≈</span></td>
+            <td class="sc"><span class="tag p">≈</span></td>
+            <td class="sc"><span class="tag n">✗</span></td>
+            <td class="sc"><span class="tag p">≈</span></td>
+          </tr>
+
+          <tr class="instinto-row">
+            <td><div class="feat-name">Facturación CFDI / SAT</div><div class="feat-sub">Factura electrónica México</div></td>
+            <td class="sc i"><span class="tag na">Externo</span></td>
+            <td class="sc"><span class="tag na">N/A</span></td>
+            <td class="sc"><span class="tag y">✓</span></td>
+            <td class="sc"><span class="tag n">✗</span></td>
+            <td class="sc"><span class="tag y">✓</span></td>
+            <td class="sc"><span class="tag p">≈</span></td>
+            <td class="sc"><span class="tag y">✓</span></td>
+          </tr>
+
+          <tr class="instinto-row">
+            <td><div class="feat-name">Impresora térmica / ticket</div><div class="feat-sub">Cocina + recibo al cliente</div></td>
+            <td class="sc i"><span class="tag y">✓</span></td>
+            <td class="sc"><span class="tag y">✓</span></td>
+            <td class="sc"><span class="tag y">✓</span></td>
+            <td class="sc"><span class="tag y">✓</span></td>
+            <td class="sc"><span class="tag y">✓</span></td>
+            <td class="sc"><span class="tag y">✓</span></td>
+            <td class="sc"><span class="tag y">✓</span></td>
+          </tr>
+
+          <!-- Costo -->
+          <tr class="cat-row"><td colspan="8">Modelo de costo</td></tr>
+
+          <tr class="instinto-row">
+            <td><div class="feat-name">Costo mensual (MXN aprox.)</div></td>
+            <td class="sc i" style="color:#2d7a2d;font-size:15px;font-weight:800;">$0</td>
+            <td class="sc" style="color:#e24b4a;font-weight:700;">$2,800+</td>
+            <td class="sc" style="color:#e24b4a;font-weight:700;">$2,200+</td>
+            <td class="sc" style="color:#b06800;font-weight:700;">$800+</td>
+            <td class="sc" style="color:#b06800;font-weight:700;">$1,200+</td>
+            <td class="sc" style="color:#2d7a2d;font-weight:700;">$400</td>
+            <td class="sc" style="color:#b06800;font-weight:700;">$700</td>
+          </tr>
+
+          <tr class="instinto-row">
+            <td><div class="feat-name">Disponible en México</div><div class="feat-sub">Soporte, pagos, idioma, SAT</div></td>
+            <td class="sc i"><span class="tag y">✓</span></td>
+            <td class="sc"><span class="tag n">✗</span></td>
+            <td class="sc"><span class="tag p">≈</span></td>
+            <td class="sc"><span class="tag y">✓</span></td>
+            <td class="sc"><span class="tag y">✓</span></td>
+            <td class="sc"><span class="tag p">≈</span></td>
+            <td class="sc"><span class="tag y">✓</span></td>
+          </tr>
+
+          <tr class="instinto-row">
+            <td><div class="feat-name">Hardware libre (iPad/Android)</div><div class="feat-sub">Sin lock-in de hardware</div></td>
+            <td class="sc i"><span class="tag y">✓</span></td>
+            <td class="sc"><span class="tag n">✗</span></td>
+            <td class="sc"><span class="tag p">≈</span></td>
+            <td class="sc"><span class="tag y">✓</span></td>
+            <td class="sc"><span class="tag y">✓</span></td>
+            <td class="sc"><span class="tag y">✓</span></td>
+            <td class="sc"><span class="tag y">✓</span></td>
+          </tr>
+
+          <!-- Total -->
+          <tr class="total-row">
+            <td style="padding:14px;">Score Total (0–100)</td>
+            <td class="best" style="text-align:center;">81</td>
+            <td class="toast-c" style="text-align:center;">93</td>
+            <td class="mid" style="text-align:center;">91</td>
+            <td class="mid" style="text-align:center;">85</td>
+            <td class="mid" style="text-align:center;">88</td>
+            <td class="mid" style="text-align:center;font-size:13px;">72</td>
+            <td class="mid" style="text-align:center;">82</td>
+          </tr>
+
+        </tbody>
+      </table>
+    </div>
+    <div style="margin-top:10px;font-size:11px;color:#bbb;text-align:right;">
+      <span class="tag y" style="font-size:10px;">✓</span> Completo &nbsp;
+      <span class="tag p" style="font-size:10px;">≈</span> Básico / add-on &nbsp;
+      <span class="tag n" style="font-size:10px;">✗</span> No disponible &nbsp;·&nbsp;
+      Análisis propio mayo 2025
+    </div>
+  </div>
+</section>
+
+<!-- ═══ BRECHAS ═══ -->
+<section style="padding-top:0;">
+  <div class="container">
+    <div class="sec-label">Hoja de ruta</div>
+    <h2 class="sec-title">Las 5 brechas clave</h2>
+    <p class="sec-desc">Lo que separa a INSTINTO POS de los sistemas líderes — con su estado actual y el siguiente paso.</p>
+
+    <div class="brecha-grid">
+      <div class="brecha-card done">
+        <span class="bc-tag done">✓ Completo</span>
+        <div class="bc-title">KPIs de cocina en tiempo real</div>
+        <div class="bc-desc">Barra KPI en pantalla cocina: comandas activas, promedio de espera, alertas 10/20 min, bumps de sesión y breakdown de tiempos por mesero.</div>
+        <div class="bc-arrow">→ En producción</div>
+      </div>
+
+      <div class="brecha-card done">
+        <span class="bc-tag done">✓ Completo</span>
+        <div class="bc-title">Modo offline completo</div>
+        <div class="bc-desc">Service Worker v2 con caché de app shell completo, write-through localStorage en cada guardado, y merge inteligente al reconectar sin pérdida de datos.</div>
+        <div class="bc-arrow">→ En producción</div>
+      </div>
+
+      <div class="brecha-card wip">
+        <span class="bc-tag wip">⏳ En gestión</span>
+        <div class="bc-title">Delivery via Deliverect</div>
+        <div class="bc-desc">Rappi + UberEats + DiDi Food integrados como un solo canal. Los pedidos delivery aparecen en el mapa de mesas como cualquier orden. Sin tablet extra.</div>
+        <div class="bc-arrow">→ Contactar integraciones@deliverect.com · Webhook listo para construir</div>
+      </div>
+
+      <div class="brecha-card next">
+        <span class="bc-tag next">Próximo</span>
+        <div class="bc-title">CRM / Fidelización integrado</div>
+        <div class="bc-desc">Sistema de clientes dentro de los descuentos del POS. Cumpleaños → burger gratis, 6ª visita → recompensa. Sin app externa, sin fricción para el mesero.</div>
+        <div class="bc-arrow">→ Integrado en sección de descuentos</div>
+      </div>
+
+      <div class="brecha-card next">
+        <span class="bc-tag next">Después</span>
+        <div class="bc-title">Vista gerente en móvil (PWA)</div>
+        <div class="bc-desc">Página de solo lectura optimizada para teléfono: ventas del día, mesas activas, alertas de inventario. El dueño lo ve desde cualquier lugar, en tiempo real.</div>
+        <div class="bc-arrow">→ PWA nativa, sin app store</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══ DELIVERECT ═══ -->
+<section style="padding-top:0;">
+  <div class="container">
+    <div class="deliverect-box">
+      <h3>Plan Deliverect — Los 4 pasos</h3>
+      <p>Deliverect actúa como hub: recibe los pedidos de Rappi, UberEats y DiDi Food, y los convierte en una comanda estándar del POS de INSTINTO. El mesero ve "Delivery" igual que cualquier mesa — sin flujos nuevos que aprender.</p>
+      <div class="dstep-grid">
+        <div class="dstep">
+          <div class="dstep-n">Paso 1</div>
+          <div class="dstep-t">Alta en Deliverect</div>
+          <div class="dstep-d">Contactar integraciones@deliverect.com. Registro y aprobación por parte de Deliverect. Requiere cuenta activa en al menos una plataforma delivery.</div>
+          <span class="dstep-badge a">2–5 días hábiles</span>
+        </div>
+        <div class="dstep">
+          <div class="dstep-n">Paso 2</div>
+          <div class="dstep-t">Webhook en el servidor</div>
+          <div class="dstep-d">Construir <code style="background:rgba(255,255,255,.1);padding:1px 5px;border-radius:4px;font-size:11px;">/api/webhooks/deliverect</code> en Node.js. Valida HMAC, parsea el payload estándar Deliverect, crea la comanda en Redis.</div>
+          <span class="dstep-badge g">1–2 hrs de código</span>
+        </div>
+        <div class="dstep">
+          <div class="dstep-n">Paso 3</div>
+          <div class="dstep-t">Mapeo de menú</div>
+          <div class="dstep-d">Cada producto en Rappi/UberEats se vincula al PLU de INSTINTO en el panel de Deliverect. Ellos tienen herramienta visual — no es desarrollo.</div>
+          <span class="dstep-badge a">1–2 días</span>
+        </div>
+        <div class="dstep">
+          <div class="dstep-n">Paso 4</div>
+          <div class="dstep-t">Pruebas y producción</div>
+          <div class="dstep-d">Sandbox de Deliverect para pruebas controladas. Una vez validado, los pedidos aparecen automáticamente como ordenes "Delivery" en el mapa de mesas.</div>
+          <span class="dstep-badge g">Listo para operar</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══ VENTAJAS ═══ -->
+<section style="padding-top:0;">
+  <div class="container">
+    <div class="sec-label">Por qué tiene sentido</div>
+    <h2 class="sec-title">Las ventajas reales de un POS propio</h2>
+    <div class="ventajas-grid">
+      <div class="vc">
+        <div class="vc-icon">💰</div>
+        <h4>$0 mensual, de por vida</h4>
+        <p>Ahorro de $1,200–$2,800 MXN/mes vs. cualquier sistema del mercado. En 3 unidades, ese ahorro supera los $250,000 MXN en 3 años — dinero que queda en el negocio.</p>
+      </div>
+      <div class="vc">
+        <div class="vc-icon">🔧</div>
+        <h4>Control total sobre el producto</h4>
+        <p>Cuando se necesita un flujo específico — como la autorización diferida para cancelaciones — se construye exactamente así. Sin esperar un release de un proveedor externo.</p>
+      </div>
+      <div class="vc">
+        <div class="vc-icon">🇲🇽</div>
+        <h4>Diseñado para México</h4>
+        <p>Propinas en tarjeta, cortesías con autorización, cierre de turno por mesero, reportes en pesos — lógica operativa de un restaurante mexicano real, no adaptada de EE.UU.</p>
+      </div>
+      <div class="vc">
+        <div class="vc-icon">📱</div>
+        <h4>Cualquier hardware</h4>
+        <p>Funciona en cualquier tablet, iPad, laptop o teléfono. Sin hardware propietario. Si se rompe un dispositivo, en 15 minutos hay uno nuevo funcionando con la misma URL.</p>
+      </div>
+      <div class="vc">
+        <div class="vc-icon">🔐</div>
+        <h4>Datos propios</h4>
+        <p>Ventas, inventario y clientes en tu cuenta de Upstash Redis. Nadie más accede a esos datos. Exportable en JSON en cualquier momento — cero dependencia del proveedor.</p>
+      </div>
+      <div class="vc">
+        <div class="vc-icon">🚀</div>
+        <h4>Escala a más unidades</h4>
+        <p>El mismo sistema se replica para una segunda o tercera unidad de INSTINTO: nuevo Redis, misma codebase. Sin licencias adicionales, sin negociaciones con un proveedor.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══ VEREDICTO ═══ -->
+<section style="padding-top:0;">
+  <div class="container">
+    <div class="verdict">
+      <h2>INSTINTO POS · Veredicto</h2>
+      <p>Con 81/100, INSTINTO POS ya supera a SambaPOS (72) — que cobra mensualidad — y está al mismo nivel que Poster (82). La brecha con Toast (93) se reduce a tres cosas: delivery integrado, app móvil gerencial y botones táctiles más grandes. Con Deliverect activo y el CRM implementado, el score proyectado sube a <strong style="color:#4CAF50;">88</strong> — al mismo nivel de Toteat MX, pero sin mensualidad y con control total del sistema.</p>
+      <div class="vs-row">
+        <div class="vs-item green">
+          <div class="vs-num">81</div>
+          <div class="vs-lbl">INSTINTO POS<br>hoy</div>
+        </div>
+        <div class="vs-sep">→</div>
+        <div class="vs-item green">
+          <div class="vs-num">88</div>
+          <div class="vs-lbl">Con delivery<br>+ CRM</div>
+        </div>
+        <div class="vs-sep" style="font-size:14px;padding-bottom:16px;">vs.</div>
+        <div class="vs-item orange">
+          <div class="vs-num">93</div>
+          <div class="vs-lbl">Toast<br><span style="font-size:10px;">$2,800/mes</span></div>
+        </div>
+        <div class="vs-item dim">
+          <div class="vs-num">88</div>
+          <div class="vs-lbl">Toteat MX<br><span style="font-size:10px;">$1,200/mes</span></div>
+        </div>
+        <div class="vs-item dim">
+          <div class="vs-num">82</div>
+          <div class="vs-lbl">Poster<br><span style="font-size:10px;">$700/mes</span></div>
+        </div>
+      </div>
+    </div>
+
+    <div style="text-align:center;padding:28px 0 48px;font-size:11px;color:#bbb;">
+      INSTINTO POS · Operadora Chapa · Análisis competitivo mayo 2025
+    </div>
+  </div>
+</section>
+
+</body>
+</html>

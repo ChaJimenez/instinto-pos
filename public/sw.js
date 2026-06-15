@@ -1,6 +1,6 @@
-// INSTINTO POS — Service Worker v3
+// INSTINTO POS — Service Worker v4
 // Cachea el app shell completo para funcionar sin conexión
-const CACHE = 'instinto-pos-v3';
+const CACHE = 'instinto-pos-v5';
 const SHELL = [
   '/',
   '/index.html',
@@ -35,8 +35,8 @@ self.addEventListener('fetch', e => {
     e.respondWith(
       fetch(e.request).catch(() =>
         new Response(
-          JSON.stringify({ error: 'offline', jobs: [], ts: 0, cmd: [], vta: [], mes: [], canc: [] }),
-          { headers: { 'Content-Type': 'application/json' } }
+          JSON.stringify({ error: 'offline' }),
+          { status: 503, statusText: 'Offline', headers: { 'Content-Type': 'application/json' } }
         )
       )
     );

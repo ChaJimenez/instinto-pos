@@ -45,12 +45,12 @@ body { font-family: system-ui, -apple-system, sans-serif; background: #f5f5f3; m
 .ticket-item:last-child { border-bottom: none; }
 .ticket-item.cancelado { opacity: 0.4; }
 .ti-top { display: flex; justify-content: space-between; align-items: center; gap: 10px; }
-.ti-name { flex: 1; font-size: 14px; }
+.ti-name { flex: 1; font-size: 16px; }
 .ti-qty { display: flex; align-items: center; gap: 8px; }
-.qty-btn { background: #f5f5f5; border: 1px solid #e0e0e0; border-radius: 5px; width: 26px; height: 26px; font-size: 16px; cursor: pointer; display: flex; align-items: center; justify-content: center; line-height: 1; }
+.qty-btn { background: #f5f5f5; border: 1px solid #e0e0e0; border-radius: 5px; width: 40px; height: 40px; font-size: 18px; cursor: pointer; display: flex; align-items: center; justify-content: center; line-height: 1; flex-shrink: 0; }
 .qty-btn:hover { background: #e8e8e8; }
-.qty-num { font-size: 14px; font-weight: 500; min-width: 20px; text-align: center; }
-.ti-price { min-width: 64px; text-align: right; font-weight: 600; font-size: 14px; }
+.qty-num { font-size: 16px; font-weight: 500; min-width: 20px; text-align: center; }
+.ti-price { min-width: 64px; text-align: right; font-weight: 600; font-size: 16px; }
 .ti-actions { display: flex; gap: 7px; margin-top: 7px; align-items: center; flex-wrap: wrap; }
 .ti-nota { flex: 1; min-width: 100px; font-size: 12px; padding: 5px 9px; border: 1px solid #e0e0e0; border-radius: 6px; background: #fafafa; color: #333; outline: none; }
 .ti-nota:focus { border-color: #888; }
@@ -64,11 +64,11 @@ body { font-family: system-ui, -apple-system, sans-serif; background: #f5f5f3; m
 .delete-item-btn:hover { background: #fff0f0; }
 .canc-pending-notice { background: #fff8ed; border: 1px solid #e8a020; border-radius: 8px; padding: 9px 13px; font-size: 12px; color: #b06800; line-height: 1.5; display: none; margin-top: 8px; }
 .ticket-footer { padding-top: 10px; border-top: 1px solid #e0e0e0; margin-top: 6px; }
-.ticket-line { display: flex; justify-content: space-between; font-size: 13px; margin-bottom: 4px; }
+.ticket-line { display: flex; justify-content: space-between; font-size: 15px; margin-bottom: 4px; }
 .ticket-line.amber { color: #b06800; }
 .ticket-line.red { color: #e24b4a; }
 .ticket-line.green { color: #2d7a2d; }
-.ticket-total { display: flex; justify-content: space-between; font-size: 17px; font-weight: 600; margin-top: 6px; }
+.ticket-total { display: flex; justify-content: space-between; font-size: 19px; font-weight: 600; margin-top: 6px; }
 .btn { width: 100%; padding: 13px; border-radius: 9px; border: none; font-size: 15px; cursor: pointer; font-weight: 500; margin-bottom: 10px; transition: all 0.15s; }
 .btn-dark { background: #1a1a1a; color: #fff; }
 .btn-dark:hover { background: #333; }
@@ -138,7 +138,7 @@ body { font-family: system-ui, -apple-system, sans-serif; background: #f5f5f3; m
 .admin-kpi-green .akpi-val { color:#2d7a2d; }
 .admin-kpi-amber .akpi-val { color:#b06800; }
 .admin-kpi-red .akpi-val { color:#e24b4a; }
-.akpi-label { font-size:10px; color:#888; font-weight:600; text-transform:uppercase; letter-spacing:0.08em; margin-bottom:7px; }
+.akpi-label { font-size:11px; color:#888; font-weight:600; text-transform:uppercase; letter-spacing:0.08em; margin-bottom:7px; }
 .akpi-val { font-size:22px; font-weight:700; color:#0D2A5E; line-height:1; margin-bottom:5px; }
 .akpi-sub { font-size:11px; color:#aaa; }
 .admin-card { background:#fff; border:1px solid #e8e8e8; border-radius:12px; padding:18px; margin-bottom:16px; }
@@ -164,7 +164,7 @@ body { font-family: system-ui, -apple-system, sans-serif; background: #f5f5f3; m
 .busq-input-wrap input { width: 100%; padding: 12px 16px 12px 42px; border: 2px solid #ddd; border-radius: 12px; font-size: 16px; outline: none; transition: border-color 0.2s; background: #fafafa; }
 .busq-input-wrap input:focus { border-color: #0D2A5E; background: #fff; }
 .busq-input-wrap .busq-icon { position: absolute; left: 13px; top: 50%; transform: translateY(-50%); font-size: 16px; color: #aaa; pointer-events: none; }
-.busq-sec { font-size: 10px; font-weight: 700; color: #aaa; text-transform: uppercase; letter-spacing: 0.1em; margin: 14px 0 6px; }
+.busq-sec { font-size: 11px; font-weight: 700; color: #aaa; text-transform: uppercase; letter-spacing: 0.1em; margin: 14px 0 6px; }
 .busq-row { display: flex; align-items: center; gap: 10px; padding: 9px 12px; border-radius: 8px; cursor: pointer; transition: background 0.1s; }
 .busq-row:hover { background: #f5f5f3; }
 .busq-tag { font-size: 10px; padding: 2px 7px; border-radius: 10px; font-weight: 600; white-space: nowrap; }
@@ -201,7 +201,7 @@ body { font-family: system-ui, -apple-system, sans-serif; background: #f5f5f3; m
 .mapa-icon.ocupada::after,.mapa-icon.demorada::after  { transform:rotate(-45deg); }
 .mapa-num { font-size: 13px; font-weight: 700; color: #1a1a1a; text-align: center; line-height: 1.2; }
 .mapa-mesero { font-size: 11px; color: #666; text-align: center; font-style: italic; line-height: 1.2; max-width: 84px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.mapa-tiempo { font-size: 10px; color: #e24b4a; font-weight: 600; text-align: center; }
+.mapa-tiempo { font-size: 11px; color: #e24b4a; font-weight: 600; text-align: center; }
 .mapa-tiempo.demorada { color: #c0392b; font-weight: 700; }
 /* Tile delivery */
 .mapa-icon.delivery { background: #6366f1; }
@@ -238,6 +238,92 @@ body { font-family: system-ui, -apple-system, sans-serif; background: #f5f5f3; m
 /* ── OFFLINE ── */
 .offline-banner { display: none; background: #e24b4a; color: #fff; text-align: center; padding: 8px 16px; font-size: 13px; font-weight: 500; position: sticky; top: 0; z-index: 200; }
 .offline-banner.show { display: block; }
+
+/* ── TABLE WRAPPERS (aplica en todos los breakpoints) ── */
+.report-table-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; margin-bottom: 16px; border-radius: 10px; }
+.report-table-wrap .report-table { margin-bottom: 0; border-radius: 0; }
+
+/* ── MOBILE OPTIMIZATIONS ── */
+@media (max-width: 640px) {
+  /* Pantalla principal */
+  .screen { padding: 14px 12px; }
+
+  /* Tabs: texto más compacto */
+  .tab { font-size: 11px; padding: 12px 6px; min-width: 58px; }
+
+  /* Grid de platillos: 2 col cómodas en cualquier teléfono */
+  .platillos-grid { grid-template-columns: repeat(2, 1fr); gap: 8px; }
+  .plato-btn { padding: 10px; }
+  .plato-name { font-size: 12px; }
+  .plato-price { font-size: 13px; }
+
+  /* Extras: 2 col en móvil */
+  .extras-grid { grid-template-columns: repeat(2, 1fr); }
+
+  /* Botones de cantidad — hit target cómodo para dedos */
+  .qty-btn { width: 44px; height: 44px; font-size: 20px; }
+  .qty-num { font-size: 15px; min-width: 24px; }
+
+  /* Formas de pago — 2 col en teléfono */
+  .pago-opts { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; }
+  .pago-opt { padding: 14px 6px; font-size: 13px; }
+
+  /* Propina — tres botones + custom por fila */
+  .propina-row { flex-wrap: wrap; gap: 6px; }
+  .propina-btn { flex: 0 0 calc(33% - 4px); padding: 11px 4px; font-size: 13px; }
+
+  /* Botón Cobrar sticky al fondo cuando hay ticket activo */
+  #btnCobrar {
+    position: sticky;
+    bottom: 12px;
+    z-index: 50;
+    box-shadow: 0 4px 24px rgba(0,0,0,0.22);
+    border-radius: 12px;
+  }
+
+  /* Mapa de mesas: iconos ligeramente más grandes */
+  .mapa-wrap { grid-template-columns: repeat(auto-fill, minmax(80px, 1fr)); gap: 5px; }
+  .mapa-icon { width: 62px; height: 62px; }
+  .mapa-num { font-size: 14px; }
+
+  /* Reporte: stat-grid en 2 col */
+  .stat-grid { grid-template-columns: 1fr 1fr; gap: 8px; }
+  .stat .val { font-size: 18px; }
+
+  /* Filtros de reporte — primera fila: botones de período juntos; segunda fila: fechas + select full width */
+  .report-filters { flex-wrap: wrap; gap: 6px; }
+  .report-filters .btn-sm { flex: 0 0 auto; }
+  .report-filters input[type=date] { flex: 1 1 120px; min-height: 38px; }
+  .report-filters select { flex: 1 1 100%; min-height: 38px; }
+
+  /* Admin KPIs: 2 col */
+  .admin-kpi-grid { grid-template-columns: 1fr 1fr; gap: 8px; }
+  .akpi-val { font-size: 18px; }
+  .admin-2col { grid-template-columns: 1fr; }
+
+  /* Modal: bottom-sheet en móvil */
+  .modal { border-radius: 20px 20px 0 0; max-width: 100%; width: 100%; margin: 0; max-height: 92dvh; }
+  .modal-bg { align-items: flex-end; }
+
+  /* Toast sin overflow horizontal */
+  .toast { white-space: pre-wrap; max-width: calc(100vw - 40px); text-align: center; bottom: 80px; }
+
+  /* Inputs más altos para touch */
+  .form-row input, .form-row select { min-height: 46px; font-size: 15px; }
+  .add-mesero input { min-height: 46px; font-size: 15px; }
+
+  /* Botones de Guardar/Cobrar más altos */
+  .btn { padding: 15px; font-size: 15px; }
+  .btn-sm { padding: 9px 14px; font-size: 13px; }
+}
+
+/* Ajuste fino para teléfonos muy pequeños (< 375px) */
+@media (max-width: 375px) {
+  .platillos-grid { grid-template-columns: repeat(2, 1fr); gap: 6px; }
+  .tab { font-size: 10px; padding: 11px 3px; min-width: 50px; }
+  .pago-opts { grid-template-columns: 1fr 1fr; }
+  .plato-name { font-size: 11px; }
+}
 </style>
 </head>
 <body>
@@ -399,19 +485,19 @@ body { font-family: system-ui, -apple-system, sans-serif; background: #f5f5f3; m
   <div class="sec">Ventas por hora del día</div>
   <div id="chartHoras" style="background:#fff;border:1px solid #f0f0f0;border-radius:12px;padding:16px 12px 8px;margin-bottom:16px;overflow:hidden;"></div>
   <div class="sec">Por forma de pago</div>
-  <table class="report-table" id="tblPago"><thead><tr><th>Método</th><th>Comandas</th><th>Venta</th><th>Propinas</th></tr></thead><tbody></tbody></table>
+  <div class="report-table-wrap"><table class="report-table" id="tblPago"><thead><tr><th>Método</th><th>Comandas</th><th>Venta</th><th>Propinas</th></tr></thead><tbody></tbody></table></div>
   <div class="sec">Ventas del período / Propinas</div>
-  <table class="report-table" id="tblPropinas"><thead><tr><th>Hora</th><th>Mesa</th><th>Mesero</th><th>Venta</th><th>Desc.</th><th>Propina</th><th>Pago</th><th></th></tr></thead><tbody></tbody></table>
+  <div class="report-table-wrap"><table class="report-table" id="tblPropinas"><thead><tr><th>Hora</th><th>Mesa</th><th>Mesero</th><th>Venta</th><th>Desc.</th><th>Propina</th><th>Pago</th><th></th></tr></thead><tbody></tbody></table></div>
   <div class="sec">Por mesero</div>
-  <table class="report-table" id="tblMesero"><thead><tr><th>Mesero</th><th>Comandas</th><th>Venta</th><th>Ticket prom.</th></tr></thead><tbody></tbody></table>
+  <div class="report-table-wrap"><table class="report-table" id="tblMesero"><thead><tr><th>Mesero</th><th>Comandas</th><th>Venta</th><th>Ticket prom.</th></tr></thead><tbody></tbody></table></div>
   <div class="sec">Productos más vendidos</div>
-  <table class="report-table" id="tblProductos"><thead><tr><th>Producto</th><th>Cant.</th><th>Total</th></tr></thead><tbody></tbody></table>
+  <div class="report-table-wrap"><table class="report-table" id="tblProductos"><thead><tr><th>Producto</th><th>Cant.</th><th>Total</th></tr></thead><tbody></tbody></table></div>
   <div class="sec">Cortesías del período</div>
-  <table class="report-table" id="tblCortesias"><thead><tr><th>Mesa</th><th>Mesero</th><th>Hora</th><th>Productos</th><th>Valor</th></tr></thead><tbody></tbody></table>
+  <div class="report-table-wrap"><table class="report-table" id="tblCortesias"><thead><tr><th>Mesa</th><th>Mesero</th><th>Hora</th><th>Productos</th><th>Valor</th></tr></thead><tbody></tbody></table></div>
   <div class="sec">Cancelaciones del período</div>
-  <table class="report-table" id="tblCancelaciones"><thead><tr><th>Mesa</th><th>Mesero</th><th>Hora</th><th>Productos</th><th>Valor</th></tr></thead><tbody></tbody></table>
+  <div class="report-table-wrap"><table class="report-table" id="tblCancelaciones"><thead><tr><th>Mesa</th><th>Mesero</th><th>Hora</th><th>Productos</th><th>Valor</th></tr></thead><tbody></tbody></table></div>
   <div class="sec" id="secEdiciones" style="display:none;color:#e24b4a;">⚠ Ediciones de encargado</div>
-  <table class="report-table" id="tblEdiciones" style="display:none;"><thead><tr><th>Hora</th><th>Venta</th><th>Campo</th><th>Antes</th><th>Después</th></tr></thead><tbody></tbody></table>
+  <div class="report-table-wrap"><table class="report-table" id="tblEdiciones" style="display:none;"><thead><tr><th>Hora</th><th>Venta</th><th>Campo</th><th>Antes</th><th>Después</th></tr></thead><tbody></tbody></table></div>
 </div>
 
 <!-- CIERRE DEL DÍA -->
@@ -980,7 +1066,7 @@ body { font-family: system-ui, -apple-system, sans-serif; background: #f5f5f3; m
 
 <script>
 // ── AUTO-RELOAD: fuerza recarga cuando hay nuevo código desplegado ──
-(function(){try{var V='20260601-3';if(localStorage.getItem('_posV')!==V){localStorage.setItem('_posV',V);location.reload(true);}}catch(e){}})();
+(function(){try{var V='20260609-1';if(localStorage.getItem('_posV')!==V){localStorage.setItem('_posV',V);location.reload(true);}}catch(e){}})();
 
 // ── CONFIGURACIÓN ──
 const PRINT_SERVER = 'http://127.0.0.1:3000';
@@ -1069,12 +1155,23 @@ function fmtProp(n){
 
 // ── CAPA DE DATOS (API) ──
 async function cargarDatos(esRecarga){
+  // Baseline desde localStorage antes de tocar el servidor — protege contra servidor vacío
+  if(!meseros.length){
+    try{meseros=JSON.parse(localStorage.getItem('i_mes')||'[]');}catch(_){}
+  }
   try {
     const r = await fetch('/api/datos');
     if(!r.ok) throw new Error('HTTP '+r.status);
     const d = await r.json();
+    // Detectar respuesta offline del Service Worker (devuelve HTTP 200 con {error:'offline'})
+    // Si no se detecta, cargarDatos pisaría comandas/ventas con arrays vacíos y los escribiría en localStorage
+    if (d.error === 'offline') throw new Error('Sin conexión (SW offline)');
     const serverCmd = d.cmd || [];
     const serverVta = d.vta || [];
+    // Protección de meseros: nunca pisar con array vacío
+    // Si el servidor devuelve [] (reinicio, corrupción), conservamos los que ya tenemos
+    const serverMes = d.mes || [];
+    const safeMes = serverMes.length > 0 ? serverMes : meseros;
     if(esRecarga){
       const serverIds = new Set(serverCmd.map(c=>c.id));
       const serverVentaIds = new Set(serverVta.map(v=>v.id));
@@ -1088,10 +1185,11 @@ async function cargarDatos(esRecarga){
       // Comandas locales que no están en el servidor y no han sido cerradas
       const soloLocales = comandas.filter(c=>!serverIds.has(c.id) && !allVentaIds.has(c.id));
       ventas = mergedVentas;
-      meseros = d.mes || [];
+      meseros = safeMes;
       cancelaciones = d.canc || [];
-      if(soloLocales.length || localOnlyVentas.length){
+      if(soloLocales.length || localOnlyVentas.length || serverMes.length===0&&safeMes.length>0){
         if(soloLocales.length) console.warn('🛡 Protegidas',soloLocales.length,'comanda(s) local(es):',soloLocales.map(c=>'Mesa '+c.mesa));
+        if(serverMes.length===0&&safeMes.length>0) console.warn('🛡 Meseros restaurados desde local — servidor los había perdido');
         const merged=[...cleanServerCmd,...soloLocales];
         comandas=merged;
         await fetch('/api/guardar',{method:'POST',headers:{'Content-Type':'application/json','X-API-Key':API_KEY},body:JSON.stringify({cmd:merged,vta:ventas,mes:meseros,canc:cancelaciones})});
@@ -1101,8 +1199,13 @@ async function cargarDatos(esRecarga){
     } else {
       comandas = serverCmd;
       ventas = serverVta;
-      meseros = d.mes || [];
+      meseros = safeMes;
       cancelaciones = d.canc || [];
+      // Si el servidor no tenía meseros pero los recuperamos de local, restaurarlos en servidor
+      if(serverMes.length===0&&safeMes.length>0){
+        console.warn('🛡 Meseros restaurados desde localStorage — restaurando en servidor...');
+        fetch('/api/guardar',{method:'POST',headers:{'Content-Type':'application/json','X-API-Key':API_KEY},body:JSON.stringify({cmd:comandas,vta:ventas,mes:meseros,canc:cancelaciones})}).catch(()=>{});
+      }
     }
     // Mantener localStorage como snapshot actualizado
     try{
@@ -1139,6 +1242,7 @@ async function guardar(){
       body:JSON.stringify({cmd:comandas,vta:ventas,mes:meseros,canc:cancelaciones,...(ultimaActualizacion>0?{ts:ultimaActualizacion}:{})})
     });
     if(_gResp.status===409){toast('⚠ Conflicto de sync — recargando datos...');cargarDatos(true);return;}
+    if(!_gResp.ok){throw new Error('HTTP '+_gResp.status);}
     // Actualizar marca de tiempo local para que el poll no recargue el estado que acabamos de guardar
     ultimaActualizacion = Date.now();
     setSyncDot(true);
@@ -1153,7 +1257,7 @@ async function guardar(){
   }
 }
 
-// ── SYNC EN TIEMPO REAL (polling 3s) ──
+// ── SYNC EN TIEMPO REAL (polling 6s) ──
 function setSyncDot(on){
   const d=document.getElementById('syncDot');
   if(d) d.className='sync-dot'+(on?'':' off');
@@ -1162,7 +1266,10 @@ function setSyncDot(on){
 setInterval(async()=>{
   try{
     const r=await fetch('/api/lastUpdate');
-    const{ts}=await r.json();
+    if(!r.ok) throw new Error('HTTP '+r.status);
+    const d=await r.json();
+    if(d.error) throw new Error('offline');
+    const{ts}=d;
     if(ts>ultimaActualizacion&&ultimaActualizacion>0){
       // No recargar si el usuario está en medio de crear o editar una comanda
       if(currentItems.length>0||editandoId){
@@ -1666,7 +1773,7 @@ async function enviarRecibo(venta){
       toast('🖨 Cuenta enviada a impresora ✓');
       return;
     }catch(e){
-      if(i===2)toast('⚠ Sin conexión con impresora — verifica el servidor de impresión');
+      if(i===2)toast('⚠ Error al enviar recibo: '+e.message+' — verifica el servidor de impresión');
       else await new Promise(r=>setTimeout(r,800));
     }
   }
@@ -2171,7 +2278,7 @@ function abrirCobro(id){
     const label=it.cortesia?`<span style="color:#b06800;">★ ${it.n}</span>`:it.n;
     const nota=it.nota?`<div style="font-size:11px;color:#888;">${it.nota}</div>`:'';
     const precio=it.cortesia?'<span style="color:#b06800;">$0</span>':'$'+(it.p*it.q).toLocaleString();
-    return`<div class="ticket-item"><div class="ti-top"><span class="ti-name" style="font-size:13px;">${it.q}× ${label}${nota}</span><span class="ti-price">${precio}</span></div></div>`;
+    return`<div class="ticket-item"><div class="ti-top"><span class="ti-name" style="font-size:16px;">${it.q}× ${label}${nota}</span><span class="ti-price">${precio}</span></div></div>`;
   }).join('');
   document.getElementById('modalCortesias').textContent=c.cortesias>0?`★ Cortesías: $${c.cortesias.toLocaleString()}`:'';
   const cancItems=c.items.filter(it=>it.cancelado);

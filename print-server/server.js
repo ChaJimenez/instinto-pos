@@ -8,7 +8,7 @@
 
 const net = require('net');
 
-const API_BASE = 'https://instinto-sistema-cobranza.vercel.app';
+const API_BASE = 'https://instinto-pos.vercel.app';
 const API_KEY  = 'instinto-pos-2026';
 
 const PRINTERS = {
@@ -109,12 +109,27 @@ function printRaw(host, port, data) {
   });
 }
 
+let _pollErrors = 0;
+let _lastJobTime = null;
+
 // ── Pollear la API y procesar jobs ──
 async function poll() {
   try {
     const res = await fetch(API_BASE + '/api/print-queue');
-    if (!res.ok) return;
+    if (!res.ok) {
+      _pollErrors++;
+      if (_pollErrors === 1 || _pollErrors % 30 === 0)
+        console.error('⚠  Cola responde HTTP ' + res.status + ' (intento ' + _pollErrors + ')');
+      return;
+    }
+    _pollErrors = 0;
     const { jobs } = await res.json();
+
+    if (jobs.length > 0) {
+      console.log('📥 ' + jobs.length + ' job(s) recibido(s)');
+      _lastJobTime = new Date().toLocaleTimeString('es-MX');
+    }
+
     const failed = [];
 
     for (const job of jobs) {
@@ -144,7 +159,9 @@ async function poll() {
       }
     }
   } catch (e) {
-    // Silencioso — sin internet momentáneo
+    _pollErrors++;
+    if (_pollErrors === 1 || _pollErrors % 30 === 0)
+      console.error('⚠  Sin conexión a la nube: ' + e.message + ' (intento ' + _pollErrors + ')');
   }
 }
 
