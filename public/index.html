@@ -1064,12 +1064,70 @@ body { font-family: system-ui, -apple-system, sans-serif; background: #f5f5f3; m
 
 <div class="toast" id="toast"></div>
 
+<!-- Modal de acceso PIN -->
+<div id="pinGate" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:9999;display:flex;align-items:center;justify-content:center;">
+  <div style="background:#1a1a1a;border:1px solid #333;border-radius:16px;padding:36px 32px;width:320px;text-align:center;">
+    <div style="font-size:28px;margin-bottom:8px;">🔐</div>
+    <div style="color:#fff;font-size:18px;font-weight:700;margin-bottom:4px;">Instinto POS</div>
+    <div style="color:#888;font-size:13px;margin-bottom:24px;">Ingresa tu PIN de acceso</div>
+    <input id="pinInput" type="password" inputmode="numeric" maxlength="8" placeholder="••••"
+      style="width:100%;box-sizing:border-box;padding:14px;font-size:22px;text-align:center;letter-spacing:8px;border:1px solid #444;border-radius:10px;background:#111;color:#fff;outline:none;margin-bottom:12px;"
+      onkeydown="if(event.key==='Enter')_submitPin()">
+    <div id="pinError" style="color:#ef4444;font-size:13px;min-height:18px;margin-bottom:10px;"></div>
+    <button onclick="_submitPin()" style="width:100%;padding:14px;background:#f5a020;color:#000;font-weight:800;font-size:15px;border:none;border-radius:10px;cursor:pointer;">Entrar</button>
+  </div>
+</div>
+
 <script>
 // ── AUTO-RELOAD: fuerza recarga cuando hay nuevo código desplegado ──
-(function(){try{var V='20260615-1';if(localStorage.getItem('_posV')!==V){localStorage.setItem('_posV',V);location.reload(true);}}catch(e){}})();
+(function(){try{var V='20260616-1';if(localStorage.getItem('_posV')!==V){localStorage.setItem('_posV',V);location.reload(true);}}catch(e){}})();
 
-// ── CONFIGURACIÓN ──
-const API_KEY = 'instinto-pos-2026';
+// ── Sesión autenticada ──
+let API_KEY = '';
+let _tokExp = 0;
+let _pinResolve = null;
+
+function _showPinGate() {
+  return new Promise(resolve => {
+    _pinResolve = resolve;
+    const gate = document.getElementById('pinGate');
+    gate.style.display = 'flex';
+    document.getElementById('pinError').textContent = '';
+    document.getElementById('pinInput').value = '';
+    setTimeout(() => document.getElementById('pinInput').focus(), 100);
+  });
+}
+
+async function _submitPin() {
+  const pin = document.getElementById('pinInput').value.trim();
+  if (!pin) return;
+  document.getElementById('pinError').textContent = '';
+  try {
+    const r = await fetch('/api/auth', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ pin }) });
+    if (!r.ok) {
+      document.getElementById('pinError').textContent = 'PIN incorrecto — intenta de nuevo';
+      document.getElementById('pinInput').value = '';
+      document.getElementById('pinInput').focus();
+      return;
+    }
+    const { token, exp } = await r.json();
+    API_KEY = token; _tokExp = exp;
+    sessionStorage.setItem('_pt', token);
+    sessionStorage.setItem('_pte', String(exp));
+    document.getElementById('pinGate').style.display = 'none';
+    if (_pinResolve) { _pinResolve(); _pinResolve = null; }
+  } catch(e) {
+    document.getElementById('pinError').textContent = 'Error de conexión';
+  }
+}
+
+(async function _initAuth() {
+  const cached = sessionStorage.getItem('_pt');
+  const exp = Number(sessionStorage.getItem('_pte') || 0);
+  if (cached && Date.now() < exp - 60000) { API_KEY = cached; return; }
+  await _showPinGate();
+})();
+
 function esc(s){const d=document.createElement('div');d.textContent=String(s||'');return d.innerHTML;}
 
 let MENU = {

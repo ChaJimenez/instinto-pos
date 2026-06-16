@@ -131,6 +131,9 @@
 </div>
 
 <script>
+// ── Escape HTML (previene XSS en nombres y notas de pedido) ──
+function esc(s){const d=document.createElement('div');d.textContent=String(s||'');return d.innerHTML;}
+
 // ── Categorías de barra (NO se muestran en cocina) ──
 const BARRA = new Set(['Refrescos','Cervezas','Cervezas Artesanales','Preparados','Cafés']);
 
@@ -286,20 +289,24 @@ function renderAll(cmds) {
   visibles.forEach((cmd, pos) => {
     const cid = String(cmd.id);
     const mins = minutosDesde(cmd.id);
-    const cocina = (cmd.items || []).filter(it => !it.cancelado && !BARRA.has(it.cat));
+    // Usar índice original (antes de filtrar) como clave estable — resiste cancelaciones
+    const cocinaConIdx = (cmd.items || [])
+      .map((it, origIdx) => ({ it, origIdx }))
+      .filter(({ it }) => !it.cancelado && !BARRA.has(it.cat));
     const readySet = new Set(state.ready[cid] || []);
-    const todasListas = cocina.length > 0 && cocina.every((_, i) => readySet.has(i));
+    const todasListas = cocinaConIdx.length > 0 && cocinaConIdx.every(({ origIdx }) => readySet.has(origIdx));
+    const readyCount = cocinaConIdx.filter(({ origIdx }) => readySet.has(origIdx)).length;
 
     const timerCls = timerClass(mins);
     const cardCls  = cardClass(mins, todasListas);
 
-    const itemsHtml = cocina.map((it, i) => {
-      const esListo = readySet.has(i);
-      const nota = it.nota ? `<div class="nota-kds">${it.nota}</div>` : '';
-      return `<div class="kds-item ${esListo?'listo':'pendiente'}" onclick="toggleItem('${cid}',${i})">
+    const itemsHtml = cocinaConIdx.map(({ it, origIdx }) => {
+      const esListo = readySet.has(origIdx);
+      const nota = it.nota ? `<div class="nota-kds">${esc(it.nota)}</div>` : '';
+      return `<div class="kds-item ${esListo?'listo':'pendiente'}" onclick="toggleItem('${cid}',${origIdx})">
         <span class="qty">${it.q}×</span>
         <div style="flex:1;min-width:0;">
-          <div class="nombre">${it.n.replace(/^\+/,'')}</div>${nota}
+          <div class="nombre">${esc(it.n.replace(/^\+/,''))}</div>${nota}
         </div>
         <span class="check">${esListo?'✓':'○'}</span>
       </div>`;
@@ -307,15 +314,15 @@ function renderAll(cmds) {
 
     const bump_html = `<div class="card-footer">
       <button class="btn-bump ${todasListas?'':'disabled'}" onclick="bump('${cid}')">
-        ${todasListas ? '✓ BUMP — listo' : `Faltan ${cocina.length - readySet.size} ítems`}
+        ${todasListas ? '✓ BUMP — listo' : `Faltan ${cocinaConIdx.length - readyCount} ítems`}
       </button>
     </div>`;
 
     const html = `
       <div class="card-header">
         <div>
-          <div class="card-mesa">Mesa ${cmd.mesa || '—'}</div>
-          <div class="card-mesero">${cmd.mesero || ''}</div>
+          <div class="card-mesa">Mesa ${esc(cmd.mesa || '—')}</div>
+          <div class="card-mesero">${esc(cmd.mesero || '')}</div>
         </div>
         <div class="card-timer">
           <div class="timer-val ${timerCls}">${mins}m</div>

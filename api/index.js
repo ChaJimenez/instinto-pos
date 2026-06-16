@@ -30,13 +30,55 @@ function normalizarFecha(v) {
   }
   return new Date(v.id).toLocaleDateString('sv-SE', { timeZone: 'America/Mexico_City' });
 }
-const PIN = process.env.PIN_ADMIN || '1234';
-const API_SECRET = process.env.API_SECRET || 'instinto-pos-2026';
+const PIN = process.env.PIN_ADMIN || '';
+const API_SECRET = process.env.API_SECRET || '';
+if (!PIN || !API_SECRET) {
+  console.error('[POS] FATAL: configura PIN_ADMIN y API_SECRET en las variables de entorno de Vercel');
+}
 
-// Middleware de autenticación — activo siempre (configura API_SECRET en Vercel para producción)
+// ── Tokens de sesión (12 h, firmados HMAC-SHA256) ──
+const TOKEN_TTL = 12 * 60 * 60 * 1000;
+function signToken() {
+  const ts = Date.now();
+  const rand = crypto.randomBytes(8).toString('hex');
+  const payload = `${ts}.${rand}`;
+  const sig = crypto.createHmac('sha256', API_SECRET).update(payload).digest('hex');
+  return `${payload}.${sig}`;
+}
+function verifyToken(t) {
+  if (!t || typeof t !== 'string') return false;
+  const parts = t.split('.');
+  if (parts.length !== 3) return false;
+  const [ts, rand, sig] = parts;
+  if (isNaN(Number(ts)) || Date.now() - Number(ts) > TOKEN_TTL) return false;
+  try {
+    const expected = crypto.createHmac('sha256', API_SECRET).update(`${ts}.${rand}`).digest('hex');
+    if (sig.length !== expected.length) return false;
+    return crypto.timingSafeEqual(Buffer.from(sig), Buffer.from(expected));
+  } catch { return false; }
+}
+
+// ── Rate limiting en memoria (por IP) ──
+const _rl = new Map();
+function checkRateLimit(ip, max = 10, windowMs = 60000) {
+  const now = Date.now();
+  const r = _rl.get(ip) || { n: 0, t: now + windowMs };
+  if (now > r.t) { r.n = 0; r.t = now + windowMs; }
+  r.n++;
+  _rl.set(ip, r);
+  return r.n > max;
+}
+function getIp(req) {
+  return (req.headers['x-forwarded-for'] || '').split(',')[0].trim() || req.socket?.remoteAddress || 'unknown';
+}
+
+// Middleware de autenticación — acepta API_SECRET directo O token de sesión firmado
 function requireAuth(req, res, next) {
-  if (req.headers['x-api-key'] !== API_SECRET) return res.status(401).json({ error: 'No autorizado' });
-  next();
+  const key = req.headers['x-api-key'];
+  if (!key) return res.status(401).json({ error: 'No autorizado' });
+  if (API_SECRET && key === API_SECRET) return next();
+  if (verifyToken(key)) return next();
+  return res.status(401).json({ error: 'No autorizado' });
 }
 
 // ── Cargar todos los datos ──
@@ -193,8 +235,19 @@ app.post('/api/requeue', requireAuth, async (req, res) => {
   }
 });
 
+// ── Auth con PIN → devuelve token de sesión firmado ──
+app.post('/api/auth', (req, res) => {
+  const ip = getIp(req);
+  if (checkRateLimit(ip, 10, 60000)) return res.status(429).json({ error: 'Demasiados intentos. Espera 1 minuto.' });
+  const { pin } = req.body || {};
+  if (!PIN || String(pin) !== String(PIN)) return res.status(401).json({ error: 'PIN incorrecto' });
+  res.json({ token: signToken(), exp: Date.now() + TOKEN_TTL });
+});
+
 // ── Validar PIN (sin exponer el PIN en el cliente) ──
 app.post('/api/validate-pin', async (req, res) => {
+  const ip = getIp(req);
+  if (checkRateLimit(ip, 10, 60000)) return res.status(429).json({ ok: false, error: 'Demasiados intentos' });
   const { pin } = req.body || {};
   if (pin === PIN) res.json({ ok: true });
   else res.status(401).json({ ok: false });
@@ -213,6 +266,8 @@ app.get('/api/gerentes', async (req, res) => {
 
 // Validar PIN de un gerente específico
 app.post('/api/gerentes/validar', async (req, res) => {
+  const ip = getIp(req);
+  if (checkRateLimit(ip, 10, 60000)) return res.status(429).json({ ok: false });
   try {
     const { nombre, pin } = req.body || {};
     if (!nombre || !pin) return res.json({ ok: false });
@@ -300,7 +355,7 @@ app.get('/api/inv-alertas', async (req, res) => {
     const diasFaltantes = [];
     if (config.fechaInicioVentas) {
       for (let i = 1; i <= 3; i++) {
-        const d = new Date(Date.now() - i * 86400000).toISOString().slice(0,10);
+        const d = new Date(Date.now() - i * 86400000).toLocaleDateString('sv-SE', { timeZone: 'America/Mexico_City' });
         if (d >= config.fechaInicioVentas && !toteatArr.includes(d)) {
           diasFaltantes.push(d);
         }
