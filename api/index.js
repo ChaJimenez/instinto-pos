@@ -18,6 +18,30 @@ app.use(express.json({
 
 const KEYS = { cmd: 'i:cmd', vta: 'i:vta', mes: 'i:mes', canc: 'i:canc', ts: 'i:lastUpdate' };
 
+// ── WAL (Write-Ahead Log) para cobros individuales ──
+// Cada cobro se registra aquí ANTES del bulk save — garantiza durabilidad
+// aunque el guardar() falle o dos tablets guarden simultáneamente.
+const WAL_KEY = 'i:vta:wal';
+
+async function walRead() {
+  const raw = await kv.lrange(WAL_KEY, 0, -1);
+  return (raw || []).map(e => {
+    try { return typeof e === 'string' ? JSON.parse(e) : e; } catch { return null; }
+  }).filter(Boolean);
+}
+
+function walMerge(vta, wal) {
+  if (!wal || !wal.length) return vta || [];
+  const ids = new Set((vta || []).map(v => v.id));
+  const nuevo = wal.filter(v => !ids.has(v.id));
+  return nuevo.length ? [...(vta || []), ...nuevo] : (vta || []);
+}
+
+// Clave de snapshot horario: i:vta:bak:2026-06-17T14
+function snapKey() {
+  return 'i:vta:bak:' + new Date().toISOString().slice(0, 13);
+}
+
 // Normaliza cualquier venta a fecha ISO YYYY-MM-DD (maneja DD/MM/YYYY y YYYY-MM-DD)
 function normalizarFecha(v) {
   if (v.fecha) {
@@ -84,13 +108,16 @@ function requireAuth(req, res, next) {
 // ── Cargar todos los datos ──
 app.get('/api/datos', async (req, res) => {
   try {
-    const [cmd, vta, mes, canc] = await Promise.all([
+    const [cmd, vta, mes, canc, wal] = await Promise.all([
       kv.get(KEYS.cmd),
       kv.get(KEYS.vta),
       kv.get(KEYS.mes),
       kv.get(KEYS.canc),
+      walRead(),
     ]);
-    res.json({ cmd: cmd || [], vta: vta || [], mes: mes || [], canc: canc || [] });
+    // Fusionar WAL: cualquier cobro registrado llega aunque guardar() haya fallado
+    const vtaMerged = walMerge(vta, wal);
+    res.json({ cmd: cmd || [], vta: vtaMerged, mes: mes || [], canc: canc || [] });
   } catch (e) {
     console.error('Error /api/datos:', e);
     res.status(500).json({ error: "Error de conexión" });
@@ -107,17 +134,87 @@ app.post('/api/guardar', requireAuth, async (req, res) => {
         return res.status(409).json({ error: 'conflicto', serverTs });
       }
     }
+    // Fusionar WAL: aunque la tablet esté desactualizada, ningún cobro se pierde
+    const wal = await walRead();
+    const vtaMerged = walMerge(vta, wal);
+    const walCount = wal.length;
+
+    // Snapshot horario (hasta 48h de historial recuperable)
     await Promise.all([
       kv.set(KEYS.cmd, cmd || []),
-      kv.set(KEYS.vta, vta || []),
+      kv.set(KEYS.vta, vtaMerged),
       kv.set(KEYS.mes, mes || []),
       kv.set(KEYS.canc, canc || []),
       kv.set(KEYS.ts, Date.now()),
+      kv.set(snapKey(), vtaMerged, { ex: 60 * 60 * 48 }), // expira en 48h
+      // Limpiar WAL fusionado: entradas desde 0 hasta walCount-1
+      walCount > 0 ? kv.ltrim(WAL_KEY, walCount, -1) : Promise.resolve(),
     ]);
-    res.json({ ok: true });
+    res.json({ ok: true, walMerged: vtaMerged.length - (vta || []).length });
   } catch (e) {
     console.error('Error /api/guardar:', e);
     res.status(500).json({ error: "Error de conexión" });
+  }
+});
+
+// ── Cobro individual → WAL (Write-Ahead Log) ──
+// Se llama inmediatamente al cobrar una mesa, antes del bulk guardar().
+// RPUSH es atómico — sin conflictos aunque dos tablets cobren simultáneamente.
+app.post('/api/cobro', requireAuth, async (req, res) => {
+  try {
+    const { venta } = req.body;
+    if (!venta || !venta.id) return res.status(400).json({ error: 'Falta venta' });
+    // Evitar duplicados: buscar en WAL y en el array principal
+    const [wal, vtaActual] = await Promise.all([walRead(), kv.get(KEYS.vta)]);
+    const yaExiste = [...wal, ...(vtaActual || [])].some(v => v.id === venta.id);
+    if (!yaExiste) {
+      await Promise.all([
+        kv.rpush(WAL_KEY, JSON.stringify(venta)),
+        kv.set(KEYS.ts, Date.now()),
+      ]);
+    }
+    res.json({ ok: true, duplicate: yaExiste });
+  } catch (e) {
+    console.error('Error /api/cobro:', e);
+    res.status(500).json({ error: 'Error de conexión' });
+  }
+});
+
+// ── Listar snapshots de las últimas 48 horas ──
+app.get('/api/backups', requireAuth, async (req, res) => {
+  try {
+    const ahora = Date.now();
+    const claves = Array.from({ length: 48 }, (_, i) => {
+      return 'i:vta:bak:' + new Date(ahora - i * 3600000).toISOString().slice(0, 13);
+    });
+    const valores = await Promise.all(claves.map(k => kv.get(k)));
+    const backups = claves
+      .map((k, i) => ({ key: k, hora: k.slice(10), ventas: valores[i] ? valores[i].length : null }))
+      .filter(b => b.ventas !== null);
+    res.json({ backups });
+  } catch (e) {
+    res.status(500).json({ error: 'Error de conexión' });
+  }
+});
+
+// ── Restaurar ventas desde un snapshot ──
+app.post('/api/restaurar', requireAuth, async (req, res) => {
+  try {
+    const { key, pin } = req.body;
+    if (pin !== PIN) return res.status(401).json({ error: 'PIN incorrecto' });
+    if (!key || !key.startsWith('i:vta:bak:')) return res.status(400).json({ error: 'Key inválida' });
+    const backup = await kv.get(key);
+    if (!backup) return res.status(404).json({ error: 'Snapshot no encontrado' });
+    // Fusionar: no pisar ventas que existan después del snapshot
+    const vtaActual = await kv.get(KEYS.vta) || [];
+    const backupMerged = walMerge(backup, vtaActual); // ventas actuales tienen prioridad
+    await Promise.all([
+      kv.set(KEYS.vta, backupMerged),
+      kv.set(KEYS.ts, Date.now()),
+    ]);
+    res.json({ ok: true, ventasRestauradas: backup.length, vtaFinal: backupMerged.length });
+  } catch (e) {
+    res.status(500).json({ error: 'Error de conexión' });
   }
 });
 

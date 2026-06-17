@@ -580,11 +580,16 @@ body { font-family: system-ui, -apple-system, sans-serif; background: #f5f5f3; m
 
     <div class="sec">Respaldo de datos</div>
     <p style="font-size:13px;color:#888;margin-bottom:12px;">Exporta todos los datos para migración o respaldo. Importa el JSON del sistema anterior.</p>
-    <div style="display:flex;gap:10px;flex-wrap:wrap;">
+    <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:16px;">
       <button class="btn btn-outline btn-sm" onclick="exportarBackup()">⬇ Exportar backup JSON</button>
       <button class="btn btn-outline btn-sm" onclick="document.getElementById('fileImport').click()">⬆ Importar backup</button>
       <input type="file" id="fileImport" accept=".json" style="display:none;" onchange="importarBackup(this)" />
     </div>
+
+    <div class="sec">Snapshots automáticos (últimas 48h)</div>
+    <p style="font-size:13px;color:#888;margin-bottom:10px;">El sistema guarda un snapshot por hora. Si algo salió mal, puedes restaurar desde cualquier punto.</p>
+    <button class="btn btn-outline btn-sm" onclick="cargarBackups()" style="margin-bottom:12px;">↻ Ver snapshots disponibles</button>
+    <div id="backupsLista" style="font-size:13px;"></div>
   </div>
 
   <!-- SECCIÓN: MENÚ -->
@@ -1332,6 +1337,11 @@ function setSyncDot(on){
   if(d) d.className='sync-dot'+(on?'':' off');
 }
 
+// Auto-save silencioso cada 5 min — respaldo continuo ante fallos de red
+setInterval(()=>{
+  if((ventas.length||comandas.length)&&navigator.onLine) guardar().catch(()=>{});
+},300000);
+
 setInterval(async()=>{
   try{
     const r=await fetch('/api/lastUpdate');
@@ -1406,6 +1416,40 @@ async function importarBackup(input){
     toast('Error al importar: '+e.message);
   }
   input.value='';
+}
+
+// ── Snapshots automáticos ──
+async function cargarBackups(){
+  const el=document.getElementById('backupsLista');
+  if(!el)return;
+  el.innerHTML='<span style="color:#aaa;">Cargando...</span>';
+  try{
+    const r=await fetch('/api/backups',{headers:{'X-API-Key':API_KEY}});
+    if(!r.ok)throw new Error('HTTP '+r.status);
+    const{backups}=await r.json();
+    if(!backups.length){el.innerHTML='<span style="color:#aaa;">Sin snapshots disponibles aún. Se generan automáticamente con cada guardado.</span>';return;}
+    el.innerHTML=backups.map(b=>{
+      const hora=b.hora.replace('T',' ')+'h';
+      return `<div style="display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px solid #f0f0f0;">
+        <span><b>${hora}</b> · <span style="color:#2d7a2d;">${b.ventas} ventas</span></span>
+        <button class="btn btn-outline btn-sm" onclick="restaurarBackup('${b.key}')" style="font-size:11px;padding:3px 8px;">Restaurar</button>
+      </div>`;
+    }).join('');
+  }catch(e){el.innerHTML='<span style="color:#e24b4a;">Error cargando snapshots: '+e.message+'</span>';}
+}
+
+async function restaurarBackup(key){
+  const pin=prompt('Ingresa el PIN de administrador para restaurar:');
+  if(!pin)return;
+  try{
+    const r=await fetch('/api/restaurar',{method:'POST',headers:{'Content-Type':'application/json','X-API-Key':API_KEY},body:JSON.stringify({key,pin})});
+    const d=await r.json();
+    if(!r.ok)throw new Error(d.error||'Error');
+    await cargarDatos();
+    renderAbiertas();renderMeseroSelect();
+    toast(`Snapshot restaurado ✓ · ${d.ventasRestauradas} ventas recuperadas`);
+    cargarBackups();
+  }catch(e){toast('Error al restaurar: '+e.message);}
 }
 
 // ── PIN ──
@@ -2457,6 +2501,8 @@ function _ejecutarCobro(autorizadoPor){
   if(!yaExiste)ventas.push(venta);
   else console.warn('⚠ Venta duplicada bloqueada para mesa',c.mesa,'id',venta.id);
   comandas.splice(idx,1);
+  // WAL: registrar cobro individual ANTES del bulk guardar — durable ante fallos de red
+  if(!yaExiste) fetch('/api/cobro',{method:'POST',headers:{'Content-Type':'application/json','X-API-Key':API_KEY},body:JSON.stringify({venta})}).catch(()=>{});
   guardar();if(!yaExiste)enviarRecibo(venta);
   cerrarModal('modalCobrar');renderAbiertas();toast(`Cobrado ✓${autorizadoPor?' — autorizado por '+autorizadoPor:''}`);
 }
