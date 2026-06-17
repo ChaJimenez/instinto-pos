@@ -1,79 +1,102 @@
-# HANDOFF — POS INSTINTO · Revisión de Seguridad + Bug de cuentas perdidas
-**Última actualización:** 17 junio 2026 · sesión matutina
-**Sesión anterior:** 16 junio 2026 · Revisión profunda de bugs + fixes de seguridad
+# HANDOFF — POS INSTINTO
+**Última actualización:** 17 junio 2026 · tarde
+**Rama:** `main` · Deploy automático en Vercel al hacer push
 
 ---
 
 ## ESTADO GENERAL
 
-Sistema POS funcionando en producción. Hoy se hizo revisión profunda de código y se corrigieron los 3 bugs más críticos. El sistema requiere PIN `1234` al abrir (pendiente cambiarlo a algo más seguro).
+Sistema POS en producción con respaldo continuo activo. Hoy se resolvió el bug de cuentas perdidas y se implementó una arquitectura de 3 capas para que ningún cobro se pierda jamás.
 
 **URL activa:** https://instinto-sistema-cobranza.vercel.app
-**Proyecto Vercel:** `instinto-sistema-cobranza` ← aquí van los env vars, NO en `instinto-pos`
+**Proyecto Vercel:** `instinto-sistema-cobranza` ← aquí van los env vars
 **Repo:** `ChaJimenez/instinto-pos` — push a `main` = deploy automático
 
 ---
 
-## LO QUE SE CORRIGIÓ HOY ✅ (17 junio 2026)
+## LO QUE SE HIZO HOY ✅ (17 junio 2026)
 
-### 7. Respaldo continuo — WAL + Snapshots + Auto-save (CRÍTICO operativo)
-- **WAL (Write-Ahead Log):** Nuevo endpoint `/api/cobro` — cada cobro se registra en Redis con RPUSH atómico ANTES del bulk `guardar()`. Si el guardar falla o dos tablets guardan simultáneamente, el cobro ya está seguro en `i:vta:wal`.
-- **Merge en guardar:** `/api/datos` y `/api/guardar` fusionan el WAL antes de responder/escribir — imposible perder un cobro aunque la tablet esté desactualizada.
-- **Snapshots horarios:** Cada `guardar()` escribe `i:vta:bak:YYYY-MM-DDHH` con TTL 48h. Nuevos endpoints `/api/backups` y `/api/restaurar`. UI en Config → Respaldo de datos para ver y restaurar con un clic.
-- **Auto-save cada 5 min:** `setInterval` silencioso en el frontend.
+### Bug raíz — cuentas que no aparecían en el reporte
+**Causa:** Al recargar la página, el sistema pisaba localStorage con el estado del servidor sin merge. Si un `guardar()` había fallado por red inestable durante la noche, esas ventas se perdían para siempre.
 
-### 6. Cuentas de la noche que no aparecen en el reporte (CRÍTICO operativo)
-- **Causa raíz:** Si durante la noche fallaba un `guardar()` por red inestable, la venta quedaba en localStorage pero no en Redis. Al recargar la página, `cargarDatos()` pisaba localStorage con el estado del servidor → pérdida permanente de datos.
-- **Fix 1:** `cargarDatos()` ahora hace merge de ventas locales en la carga inicial (igual que en recarga), recuperando cualquier venta que no haya llegado al servidor. Si detecta ventas recuperadas, muestra un toast y las sincroniza al servidor automáticamente.
-- **Fix 2:** Todos los filtros de fecha ahora usan `v.fecha` (campo guardado explícitamente en locale) en lugar de `v.id` (timestamp sensible a zona horaria entre dispositivos). Esto afecta `renderReporte`, `generarTextoCierre`, `exportarReporteCSV`, `renderCierre`, `verCierreParcial` y `descargarCierreParcial`.
+**Fix 1 — carga inicial con merge:** `cargarDatos()` ahora recupera ventas que están en localStorage pero no en el servidor antes de sobreescribir. Si las detecta, las sube automáticamente y muestra un toast.
+
+**Fix 2 — filtros de fecha más robustos:** Todos los filtros del reporte (`renderReporte`, `generarTextoCierre`, `exportarReporteCSV`, cierre de turno) ahora leen `v.fecha` (campo guardado explícito en locale) en lugar de `v.id` (timestamp sensible a zona horaria entre dispositivos).
 
 ---
 
-## LO QUE SE CORRIGIÓ EN LA SESIÓN ANTERIOR ✅ (16 junio 2026)
+### Sistema de respaldo continuo — WAL + Snapshots + Auto-save
 
-### 1. API_KEY expuesta en código fuente (CRÍTICO)
-- **Antes:** `const API_KEY = 'instinto-pos-2026'` visible para cualquiera en DevTools
-- **Ahora:** Modal de PIN al abrir el POS → servidor genera token HMAC-SHA256 con TTL 12h
-- El token se guarda en `sessionStorage` — solo pide PIN una vez por sesión
+**Capa 1 — WAL (Write-Ahead Log):**
+- Nuevo endpoint `POST /api/cobro` → cada cobro se escribe con `RPUSH` atómico en `i:vta:wal` ANTES del bulk `guardar()`.
+- Sin conflictos entre tablets: `RPUSH` es atómico en Redis.
+- `/api/datos` y `/api/guardar` fusionan el WAL antes de responder/escribir.
+- Después de fusionar, se hace `LTRIM` del WAL para que no crezca indefinidamente.
 
-### 2. Sin rate limiting en endpoints de PIN (CRÍTICO)
-- **Antes:** Podías adivinar el PIN en segundos con un script
-- **Ahora:** Máximo 10 intentos por minuto por IP en `/api/auth`, `/api/validate-pin` y `/api/gerentes/validar`
+**Capa 2 — Snapshots horarios:**
+- Cada `guardar()` escribe `i:vta:bak:YYYY-MM-DDHH` con TTL 48h.
+- Nuevos endpoints: `GET /api/backups` y `POST /api/restaurar`.
+- UI en **Config → Respaldo de datos → "Ver snapshots disponibles"** → lista por hora → restaurar con un clic.
+- La restauración hace merge: las ventas posteriores al snapshot no se pierden.
 
-### 3. Zona horaria incorrecta en alertas de inventario (MEDIO)
-- **Antes:** `toISOString()` usaba UTC → después de las 7 PM México los días faltantes eran incorrectos
-- **Ahora:** `toLocaleDateString('sv-SE', { timeZone: 'America/Mexico_City' })`
+**Capa 3 — Auto-save cada 5 minutos:**
+- `setInterval` silencioso en el frontend — se activa solo cuando hay datos y hay conexión.
 
-### 4. KDS — índices se desplazaban al cancelar ítems (CRÍTICO operativo)
-- **Antes:** Si cocina marcaba un ítem como "listo" y luego alguien lo cancelaba, el checkmark quedaba en el ítem equivocado
-- **Ahora:** Los ítems se identifican por su posición original en `cmd.items` — estable ante cancelaciones
+---
 
-### 5. XSS en pantalla de cocina (MEDIO)
-- **Antes:** Nombres de platillo y notas iban directo a `innerHTML`
-- **Ahora:** Función `esc()` agregada, todos los datos del usuario escapados
+## LO QUE SE CORRIGIÓ EN LA TARDE ✅ (17 junio 2026)
+
+### Bug #8 — Reporte mostraba $233k (todas las ventas históricas) ignorando el filtro de fecha
+- **Síntoma en vivo:** Al seleccionar "Hoy" aparecían 489 comandas y $233k — acumulado de todos los meses
+- **Causa raíz:** `toLocaleDateString('es-MX')` guardaba `'17/6/2026'` sin cero en el mes. Al parsear → `'2026-6-17'` → `Invalid Date` → `NaN`. En JS, `NaN < fecha` siempre es `false`, así que TODAS las ventas pasaban el filtro
+- **Fix 1:** Guardar fecha como `toLocaleDateString('sv-SE', {timeZone:'America/Mexico_City'})` → siempre `YYYY-MM-DD`
+- **Fix 2:** `padStart(2,'0')` en el parseo de fechas `DD/MM/YYYY` para ventas históricas ya guardadas
+- **Commit:** `cd1f1a4` · **Archivo:** `public/index.html`
+
+### Incidente operativo — Comanda Mesa S2 perdida ($193)
+- Montse · Crispy Chicken Hot Honey $148 + Soda Casera $45
+- Se perdió al refrescar la tablet antes de que sincronizara con el servidor
+- **Causa:** El WAL protege cobros cerrados, no comandas abiertas en proceso
+- Re-entrada manual requerida
 
 ---
 
 ## PENDIENTE — PRÓXIMA SESIÓN 🔜
 
-> **Nota sobre cuentas de anoche:** Si la página fue recargada antes de este fix, las cuentas perdidas ya no se pueden recuperar automáticamente (localStorage fue sobreescrito con el estado del servidor). El fix previene futuros casos, pero no recupera datos ya perdidos.
-
-
-
-### Pendiente operativo (cuando quieras)
-| Bug | Impacto | Archivo |
-|-----|---------|---------|
-| PIN_ADMIN `1234` → cambiar a algo más seguro | Seguridad media | Vercel env vars |
+| Bug | Impacto | Archivo / Acción |
+|-----|---------|-----------------|
+| PIN_ADMIN `1234` → cambiar a algo más seguro | Seguridad media | Vercel → Settings → Env Vars |
 | `costoTotal` en turnos no proratea por horas | Dato incorrecto en nómina | `turnos.html:325` |
 | XSS en `reportes.html` | Seguridad media | `reportes.html` |
-| Ventana de conflicto sync 1 segundo (2 tablets simultáneos) | Pérdida silenciosa de datos | `api/index.js:64` |
-| CORS abierto a todos los orígenes | Seguridad baja | `api/index.js:11` |
-| PINs de gerentes en plaintext en Redis | Seguridad baja | `api/index.js:220` |
+| CORS abierto a todos los orígenes | Seguridad baja | `api/index.js` línea 12 |
+| PINs de gerentes en plaintext en Redis | Seguridad baja | `api/index.js` ≈ línea 270 |
+| ~~Ventana de conflicto sync 1 segundo~~ | ✅ Resuelto por WAL | — |
 
-### Para verificar en el restaurante (Windows)
-- Confirmar que el PIN modal funciona en las tablets
-- Confirmar que el KDS de cocina ya no desplaza ítems al cancelar
-- Confirmar que los datos de inventario muestran fechas correctas después de las 7 PM
+### Para verificar en el restaurante esta noche (Windows tablets)
+- Abrir el POS → cobrar una mesa → revisar que en Config aparezca el snapshot en "Ver snapshots disponibles"
+- Confirmar que el punto rojo/verde de sync se mantiene verde durante el servicio
+
+---
+
+## ARQUITECTURA DE DATOS (actualizada)
+
+```
+Redis keys activos:
+  i:cmd              → comandas abiertas (bulk, reemplaza en cada guardar)
+  i:vta              → ventas cerradas (bulk, con merge de WAL en cada escritura)
+  i:vta:wal          → Write-Ahead Log de cobros individuales (lista Redis)
+  i:vta:bak:HHHH     → Snapshots horarios, TTL 48h
+  i:mes              → meseros
+  i:canc             → cancelaciones
+  i:lastUpdate       → timestamp para polling multi-tablet
+  i:gerentes         → lista de gerentes con PINs
+  i:empleados        → catálogo de empleados
+  i:turnos:YYYY-MM-DD → turnos por día (TTL 90 días)
+  i:gastos           → gastos operativos
+  i:menu             → menú configurable
+  i:printjobs        → cola de impresión
+  inv:*              → inventarios (compartido con instinto-inventario)
+```
 
 ---
 
@@ -83,26 +106,26 @@ Sistema POS funcionando en producción. Hoy se hizo revisión profunda de códig
 |----------|--------|-------|
 | `API_SECRET` | ✅ Configurado | Desde mayo 2026. No cambiar. |
 | `PIN_ADMIN` | ⚠️ `1234` | Funciona pero es inseguro. Pendiente cambiar. |
-| `KV_REST_API_URL` | ⚠️ Needs Attention | Ya estaba así antes de hoy |
-| `KV_REST_API_TOKEN` | ⚠️ Needs Attention | Ya estaba así antes de hoy |
+| `KV_REST_API_URL` | ⚠️ Needs Attention | Revisar en Vercel |
+| `KV_REST_API_TOKEN` | ⚠️ Needs Attention | Revisar en Vercel |
 
 ---
 
 ## PARA ARRANCAR LA PRÓXIMA SESIÓN
 
-Di: **"continuemos con el POS"** y cargo este handoff automáticamente.
+Di: **"continuemos con el POS"** → cargo este handoff automáticamente.
 
-Si quieres continuar con los bugs pendientes: **"corrige los bugs pendientes del POS"**
-Si quieres cambiar el PIN: **"cambia el PIN del POS"**
+Comandos rápidos:
+- `"corrige los bugs pendientes del POS"` → ataca la tabla de arriba en orden
+- `"cambia el PIN del POS"` → guía para actualizar PIN_ADMIN en Vercel
+- `"analiza Rappi"` o `"analiza DiDi"` → adjunta screenshot del dashboard
 
 ---
 
-## CONTEXTO DELIVERY (sesión anterior — 30 mayo 2026)
+## CONTEXTO DELIVERY (meta junio 2026)
 
-Meta junio 2026:
-- Uber Eats: **$100,000 MXN** ← precios actualizados, campañas optimizadas
-- Rappi: **$50,000 MXN** ← pendiente análisis dashboard
-- DiDi Food: **$25,000 MXN** ← pendiente análisis dashboard
-
-Estado: **UE listo. Faltan Rappi y DiDi.**
-Di: "análisis Rappi" o "análisis DiDi" y adjunta screenshots del dashboard.
+| Canal | Meta | Estado |
+|-------|------|--------|
+| Uber Eats | $100,000 MXN | ✅ Precios actualizados, campañas optimizadas |
+| Rappi | $50,000 MXN | ⏳ Pendiente análisis |
+| DiDi Food | $25,000 MXN | ⏳ Pendiente análisis |
