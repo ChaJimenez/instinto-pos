@@ -342,6 +342,7 @@ body { font-family: system-ui, -apple-system, sans-serif; background: #f5f5f3; m
   <button class="tab" id="tabCierre" onclick="switchTab('cierre')">🔒 Cierre</button>
   <button class="tab" id="tabConfig" onclick="switchTab('config')">⚙ Config</button>
   <button class="tab" onclick="abrirAdmin()" style="flex:none;min-width:44px;font-size:15px;" title="Dashboard Gerencial">📊</button>
+  <a href="/reportes.html" target="_blank" class="tab" style="flex:none;text-decoration:none;font-size:12px;padding:13px 12px;white-space:nowrap;" title="Reportes gerenciales (requiere PIN)">📋 Reportes</a>
 </div>
 
 <!-- NUEVA COMANDA -->
@@ -1479,7 +1480,6 @@ setInterval(async()=>{
     if(ts>ultimaActualizacion&&ultimaActualizacion>0){
       // No recargar si el usuario está en medio de crear o editar una comanda
       if(currentItems.length>0||editandoId){
-        ultimaActualizacion=ts;
         setSyncDot(true);
         return;
       }
@@ -2088,7 +2088,9 @@ function cobrarComanda(){
     const c={...buildComanda('cerrada'),pago:pagoStr,propina:currentPropina,...(gerente?{autorizadoPor:gerente}:{})};
     if(descConAuth)c.descuento=descConAuth;
     if(editandoId)comandas=comandas.filter(x=>x.id!==editandoId);
-    ventas.push(c);editandoId=null;guardar();
+    ventas.push(c);editandoId=null;
+    fetch('/api/cobro',{method:'POST',headers:{'Content-Type':'application/json','X-API-Key':API_KEY},body:JSON.stringify({venta:c})}).catch(()=>{});
+    guardar();
     if(nuevos.length)enviarImpresion({...c,items:nuevos});
     enviarRecibo(c);
     resetForm();toast('Venta registrada ✓');switchTab('reporte');
@@ -2801,25 +2803,25 @@ function renderReporte(){
   const metodos={};
   vFilt.forEach(v=>{if(!metodos[v.pago])metodos[v.pago]={n:0,t:0,p:0};metodos[v.pago].n++;metodos[v.pago].t+=v.total;metodos[v.pago].p+=(v.propina||0);});
   document.getElementById('tblPago').querySelector('tbody').innerHTML=Object.entries(metodos).map(([m,d])=>
-    `<tr><td>${m}</td><td>${d.n}</td><td>$${d.t.toLocaleString()}</td><td style="color:#2d7a2d;">$${d.p.toLocaleString()}</td></tr>`
+    `<tr><td>${esc(m)}</td><td>${d.n}</td><td>$${d.t.toLocaleString()}</td><td style="color:#2d7a2d;">$${d.p.toLocaleString()}</td></tr>`
   ).join('')||'<tr><td colspan="4" style="color:#aaa;text-align:center;padding:14px;">Sin datos</td></tr>';
   const xMes={};
   vFilt.forEach(v=>{if(!xMes[v.mesero])xMes[v.mesero]={n:0,t:0};xMes[v.mesero].n++;xMes[v.mesero].t+=v.total;});
   document.getElementById('tblMesero').querySelector('tbody').innerHTML=Object.entries(xMes).sort((a,b)=>b[1].t-a[1].t).map(([m,d])=>
-    `<tr><td>${m}</td><td>${d.n}</td><td>$${d.t.toLocaleString()}</td><td>$${Math.round(d.t/d.n).toLocaleString()}</td></tr>`
+    `<tr><td>${esc(m)}</td><td>${d.n}</td><td>$${d.t.toLocaleString()}</td><td>$${Math.round(d.t/d.n).toLocaleString()}</td></tr>`
   ).join('')||'<tr><td colspan="4" style="color:#aaa;text-align:center;padding:14px;">Sin datos</td></tr>';
   const prods={};
   vFilt.forEach(v=>{v.items.filter(it=>!it.cancelado&&!it.cortesia).forEach(it=>{if(!prods[it.n])prods[it.n]={q:0,t:0};prods[it.n].q+=it.q;prods[it.n].t+=it.p*it.q;});});
   document.getElementById('tblProductos').querySelector('tbody').innerHTML=Object.entries(prods).sort((a,b)=>b[1].q-a[1].q).map(([n,d])=>
-    `<tr><td>${n}</td><td>${d.q}</td><td>$${d.t.toLocaleString()}</td></tr>`
+    `<tr><td>${esc(n)}</td><td>${d.q}</td><td>$${d.t.toLocaleString()}</td></tr>`
   ).join('')||'<tr><td colspan="3" style="color:#aaa;text-align:center;padding:14px;">Sin datos</td></tr>';
   const cortDet=[];
   vFilt.forEach(v=>{const ci=v.items.filter(it=>it.cortesia);if(ci.length)cortDet.push({mesa:v.mesa,mesero:v.mesero,hora:v.hora,items:ci,valor:ci.reduce((s,it)=>s+it.p*it.q,0)});});
   document.getElementById('tblCortesias').querySelector('tbody').innerHTML=cortDet.map(r=>
-    `<tr><td>${r.mesa}</td><td>${r.mesero}</td><td>${r.hora}</td><td>${r.items.map(it=>it.q+'× '+it.n).join(', ')}</td><td style="color:#b06800;">$${r.valor.toLocaleString()}</td></tr>`
+    `<tr><td>${esc(r.mesa)}</td><td>${esc(r.mesero)}</td><td>${esc(r.hora)}</td><td>${r.items.map(it=>it.q+'× '+esc(it.n)).join(', ')}</td><td style="color:#b06800;">$${r.valor.toLocaleString()}</td></tr>`
   ).join('')||'<tr><td colspan="5" style="color:#aaa;text-align:center;padding:14px;">Sin cortesías</td></tr>';
   document.getElementById('tblCancelaciones').querySelector('tbody').innerHTML=cFilt.map(r=>
-    `<tr><td>${r.mesa}</td><td>${r.mesero}</td><td>${r.hora}</td><td>${r.items.map(it=>it.q+'× '+it.n).join(', ')}${r.tipo==='mesa_completa'?' <span style="color:#e24b4a;font-size:11px;">(mesa completa)</span>':''}</td><td style="color:#e24b4a;">$${r.valor.toLocaleString()}</td></tr>`
+    `<tr><td>${esc(r.mesa)}</td><td>${esc(r.mesero)}</td><td>${esc(r.hora)}</td><td>${r.items.map(it=>it.q+'× '+esc(it.n)).join(', ')}${r.tipo==='mesa_completa'?' <span style="color:#e24b4a;font-size:11px;">(mesa completa)</span>':''}</td><td style="color:#e24b4a;">$${r.valor.toLocaleString()}</td></tr>`
   ).join('')||'<tr><td colspan="5" style="color:#aaa;text-align:center;padding:14px;">Sin cancelaciones</td></tr>';
   // Todas las ventas (activas + excluidas)
   document.getElementById('tblPropinas').querySelector('tbody').innerHTML=vTodas.length
@@ -2829,8 +2831,8 @@ function renderReporte(){
       const prop=(v.propina||0)>0?`<span style="color:#2d7a2d;font-weight:600;">${fmtProp(v.propina)}</span>`:'—';
       const exclBadge=excl?'<span style="font-size:10px;background:#f0f0f0;color:#aaa;border-radius:4px;padding:1px 5px;margin-left:4px;">EXCLUIDA</span>':'';
       return `<tr style="${excl?'opacity:0.45;':''}">
-        <td>${v.hora}</td><td>${v.mesa}${exclBadge}</td><td>${v.mesero}</td>
-        <td>$${v.total.toLocaleString()}</td><td>${desc}</td><td>${prop}</td><td>${v.pago}</td>
+        <td>${esc(v.hora)}</td><td>${esc(v.mesa)}${exclBadge}</td><td>${esc(v.mesero)}</td>
+        <td>$${v.total.toLocaleString()}</td><td>${desc}</td><td>${prop}</td><td>${esc(v.pago)}</td>
         <td style="white-space:nowrap;">
           <button class="btn btn-outline btn-sm" onclick="reimprimirVenta(${v.id})" style="font-size:11px;padding:3px 6px;margin:0 2px 0 0;" title="Reimprimir cuenta">🖨</button>
           <button class="btn btn-outline btn-sm" onclick="abrirEditVenta(${v.id})" style="font-size:11px;padding:3px 6px;margin:0 2px 0 0;">✏</button>

@@ -498,7 +498,7 @@ function renderPago(porFormaPago) {
   const total = porFormaPago.reduce((s,p) => s+p.total, 0);
   document.getElementById('pagoPills').innerHTML = porFormaPago.map(p => `
     <div class="pago-pill">
-      <div class="pago-pill-forma">${p.forma}</div>
+      <div class="pago-pill-forma">${esc(p.forma)}</div>
       <div class="pago-pill-val">${fmt$(p.total)}</div>
       <div class="pago-pill-sub">${p.cuentas} cuentas · ${total?Math.round(p.total/total*100):0}%</div>
     </div>`).join('');
