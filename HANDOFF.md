@@ -16,6 +16,12 @@ Sistema POS funcionando en producción. Hoy se hizo revisión profunda de códig
 
 ## LO QUE SE CORRIGIÓ HOY ✅ (17 junio 2026)
 
+### 7. Respaldo continuo — WAL + Snapshots + Auto-save (CRÍTICO operativo)
+- **WAL (Write-Ahead Log):** Nuevo endpoint `/api/cobro` — cada cobro se registra en Redis con RPUSH atómico ANTES del bulk `guardar()`. Si el guardar falla o dos tablets guardan simultáneamente, el cobro ya está seguro en `i:vta:wal`.
+- **Merge en guardar:** `/api/datos` y `/api/guardar` fusionan el WAL antes de responder/escribir — imposible perder un cobro aunque la tablet esté desactualizada.
+- **Snapshots horarios:** Cada `guardar()` escribe `i:vta:bak:YYYY-MM-DDHH` con TTL 48h. Nuevos endpoints `/api/backups` y `/api/restaurar`. UI en Config → Respaldo de datos para ver y restaurar con un clic.
+- **Auto-save cada 5 min:** `setInterval` silencioso en el frontend.
+
 ### 6. Cuentas de la noche que no aparecen en el reporte (CRÍTICO operativo)
 - **Causa raíz:** Si durante la noche fallaba un `guardar()` por red inestable, la venta quedaba en localStorage pero no en Redis. Al recargar la página, `cargarDatos()` pisaba localStorage con el estado del servidor → pérdida permanente de datos.
 - **Fix 1:** `cargarDatos()` ahora hace merge de ventas locales en la carga inicial (igual que en recarga), recuperando cualquier venta que no haya llegado al servidor. Si detecta ventas recuperadas, muestra un toast y las sincroniza al servidor automáticamente.
