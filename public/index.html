@@ -1982,7 +1982,7 @@ function buildComanda(estado){
   const t=totales();
   const desc=t.descValor>0?{tipo:currentDescuento.tipo,pct:currentDescuento.pct,valor:t.descValor}:null;
   const meseroVal=document.getElementById('meseroSel').value||'';
-  const obj={id:editandoId||Date.now(),mesa:document.getElementById('mesa').value.trim(),mesero:currentCanal?({uber:'Uber Eats',rappi:'Rappi',didi:'DiDi Food'}[currentCanal]+(meseroVal?' · '+meseroVal:'')):meseroVal,items:JSON.parse(JSON.stringify(currentItems)),total:t.cobrable,subtotal:t.bruto,descuento:desc,cortesias:t.cort,cancelados:t.canc,propina:currentPropina,hora:new Date().toLocaleTimeString('es-MX',{hour:'2-digit',minute:'2-digit'}),fecha:new Date().toLocaleDateString('es-MX'),estado};
+  const obj={id:editandoId||Date.now(),mesa:document.getElementById('mesa').value.trim(),mesero:currentCanal?({uber:'Uber Eats',rappi:'Rappi',didi:'DiDi Food'}[currentCanal]+(meseroVal?' · '+meseroVal:'')):meseroVal,items:JSON.parse(JSON.stringify(currentItems)),total:t.cobrable,subtotal:t.bruto,descuento:desc,cortesias:t.cort,cancelados:t.canc,propina:currentPropina,hora:new Date().toLocaleTimeString('es-MX',{hour:'2-digit',minute:'2-digit'}),fecha:new Date().toLocaleDateString('sv-SE',{timeZone:'America/Mexico_City'}),estado};
   if(currentCanal)obj.canal=currentCanal;
   return obj;
 }
@@ -2614,7 +2614,7 @@ function renderReporte(){
   const _dateMs=d=>{const x=new Date(d+'T12:00:00');return new Date(x.getFullYear(),x.getMonth(),x.getDate()).getTime();};
   // Prefiere v.fecha (locale guardado al abrir mesa) sobre v.id (timestamp — sensible a zona horaria entre dispositivos)
   const _vMs=v=>{
-    if(v.fecha){const f=String(v.fecha);let iso;if(f.includes('/')){const[dd,mm,yy]=f.split('/');iso=`${yy}-${mm}-${dd}`;}else iso=f.slice(0,10);const x=new Date(iso+'T12:00:00');return new Date(x.getFullYear(),x.getMonth(),x.getDate()).getTime();}
+    if(v.fecha){const f=String(v.fecha);let iso;if(f.includes('/')){const[dd,mm,yy]=f.split('/');iso=`${yy}-${String(mm).padStart(2,'0')}-${String(dd).padStart(2,'0')}`;}else iso=f.slice(0,10);const x=new Date(iso+'T12:00:00');return new Date(x.getFullYear(),x.getMonth(),x.getDate()).getTime();}
     const d=new Date(v.id);return new Date(d.getFullYear(),d.getMonth(),d.getDate()).getTime();
   };
   const matchFecha=(v)=>{const vm=_vMs(v);if(desdeVal&&vm<_dateMs(desdeVal))return false;if(hastaVal&&vm>_dateMs(hastaVal))return false;return true;};
@@ -2848,7 +2848,7 @@ function exportarReporteCSV(){
   const meseroFiltro=document.getElementById('filtroMesero').value;
   const _dateMs=d=>{const x=new Date(d+'T12:00:00');return new Date(x.getFullYear(),x.getMonth(),x.getDate()).getTime();};
   const _vMs=v=>{
-    if(v.fecha){const f=String(v.fecha);let iso;if(f.includes('/')){const[dd,mm,yy]=f.split('/');iso=`${yy}-${mm}-${dd}`;}else iso=f.slice(0,10);const x=new Date(iso+'T12:00:00');return new Date(x.getFullYear(),x.getMonth(),x.getDate()).getTime();}
+    if(v.fecha){const f=String(v.fecha);let iso;if(f.includes('/')){const[dd,mm,yy]=f.split('/');iso=`${yy}-${String(mm).padStart(2,'0')}-${String(dd).padStart(2,'0')}`;}else iso=f.slice(0,10);const x=new Date(iso+'T12:00:00');return new Date(x.getFullYear(),x.getMonth(),x.getDate()).getTime();}
     const d=new Date(v.id);return new Date(d.getFullYear(),d.getMonth(),d.getDate()).getTime();
   };
   const matchFecha=v=>{const vm=_vMs(v);if(desdeVal&&vm<_dateMs(desdeVal))return false;if(hastaVal&&vm>_dateMs(hastaVal))return false;return true;};
