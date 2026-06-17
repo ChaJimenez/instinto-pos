@@ -1,121 +1,102 @@
-# HANDOFF — INSTINTO · Estrategia Delivery Junio 2026
-**Última actualización:** 30 mayo 2026 · 10:10 AM
-**Sesión:** Análisis UE + plan $100k
+# HANDOFF — POS INSTINTO · Revisión de Seguridad + Bug de cuentas perdidas
+**Última actualización:** 17 junio 2026 · sesión matutina
+**Sesión anterior:** 16 junio 2026 · Revisión profunda de bugs + fixes de seguridad
 
 ---
 
 ## ESTADO GENERAL
 
-Meta junio 2026:
-- Uber Eats: **$100,000 MXN** en ventas brutas
-- Rappi: **$50,000 MXN**
-- DiDi Food: **$25,000 MXN**
+Sistema POS funcionando en producción. Hoy se hizo revisión profunda de código y se corrigieron los 3 bugs más críticos. El sistema requiere PIN `1234` al abrir (pendiente cambiarlo a algo más seguro).
 
-Capacidad de volumen: **confirmada por Cha** — puede manejar más pedidos.
-
----
-
-## UBER EATS — LO QUE YA SE DECIDIÓ ✅
-
-### Estructura de costos real (% sobre ventas brutas)
-| Concepto | % |
-|---|---|
-| Marketing + descuentos | ~37% |
-| Comisión UE (~19% efectiva) | ~19% |
-| Impuestos (IVA/ISR aprox) | ~7.4% |
-| **Margen neto real** | **~36%** |
-
-La tasa contractual es 20%+IVA pero la efectiva observada es ~19% (base neta de IVA).
-
-### Cambios de precios aplicados (Cha los modificó en sesión)
-| Producto | Precio anterior | Precio nuevo |
-|---|---|---|
-| Combo INSTINTO | $199 | $209 |
-| Tocino & Queso | $210 | $225 |
-| Doble Doble | $175 | $185 |
-| Clásica | $125 | $129 |
-| Papas fritas | $95 | $99 |
-| Mac & Cheese | $135 | $145 |
-| Fried Oreos | $130 | $139 |
-
-**Agua del día gratis** con Doble Doble (bundle propuesto por Cha).
-
-### Campañas — Decisiones tomadas
-| Campaña | Decisión | Por qué |
-|---|---|---|
-| Campaña 1 — Mac & Cheese descuento | **PAUSAR** | Mac&Cheese ya está en Campaña 3; canibalización |
-| Campaña 2 — Envío gratis | **MANTENER** | Mejor ROI (5.9x), $16 por nuevo cliente |
-| Campaña 3 — Artículo en oferta | **MANTENER** | UE subsidia 50% del descuento |
-| Campaña 4 — Día del Partido (Copa MX) | **ACTIVAR** | UE paga 20%, Cha paga 20%; multiplicador Copa 2026 |
-| Campaña 5 — Descuento general | **EVALUAR** | Revisar ROI real después de ajuste de precios |
-
-### Presupuesto de anuncios
-**Recomendación: $167/día** (tier "recomendado por UE para maximizar ventas")
-
-| Tier | Gasto mensual | Ventas extra | Utilidad extra neta |
-|---|---|---|---|
-| $84/día (actual) | $2,520 | base | — |
-| $125/día | $3,750 | +$11,900 | +$3,054 |
-| **$167/día ← elegir** | **$5,010** | **+$24,080** | **+$6,179** |
-| $250/día | $7,500 | +$46,480 | +$11,753 |
-
-**Nota:** $250/día más agresivo pero riesgo de degradación de ROI a escala.
-
-### Proyección junio con todos los cambios
-- Base actual (30 días): ~$60,000–65,000
-- Con precios nuevos + anuncio $167/día + campañas optimizadas: **$92,000–100,000**
-- Catalizador adicional: partidos Copa del Mundo 2026
+**URL activa:** https://instinto-sistema-cobranza.vercel.app
+**Proyecto Vercel:** `instinto-sistema-cobranza` ← aquí van los env vars, NO en `instinto-pos`
+**Repo:** `ChaJimenez/instinto-pos` — push a `main` = deploy automático
 
 ---
 
-## ALERTAS OPERATIVAS URGENTES ⚠️
+## LO QUE SE CORRIGIÓ HOY ✅ (17 junio 2026)
 
-### 1. Pedidos incompletos/cancelados — PÉRDIDA DE $1,974/MES
-- 4 pedidos × ~$493 promedio = $1,974 MXN perdidos en el período analizado
-- Daña el ranking UE directamente
-- **Acción:** Identificar causa raíz (¿falta de ingrediente? ¿tiempos?) y eliminar
-
-### 2. Downtime 8% (19h 58m/mes) — PENALIZACIÓN DE ALGORITMO
-- UE penaliza tiendas con más de 2–3% de downtime
-- **Acción:** Descargar app UE Manager en celular → alertas en tiempo real → reabrir desde el teléfono
-
-### 3. Rating 4.6 general — MANTENER (no bajar de 4.5)
-- Rating general: **4.6** ✅ (ya califica para "Top de UE")
-- Rating semanal esta semana: 4.2 (caída puntual — investigar qué pasó)
-- **Acción:** Revisar reseñas de esta semana para identificar el evento negativo
-- Meta: nunca bajar de 4.5 sostenido
+### 6. Cuentas de la noche que no aparecen en el reporte (CRÍTICO operativo)
+- **Causa raíz:** Si durante la noche fallaba un `guardar()` por red inestable, la venta quedaba en localStorage pero no en Redis. Al recargar la página, `cargarDatos()` pisaba localStorage con el estado del servidor → pérdida permanente de datos.
+- **Fix 1:** `cargarDatos()` ahora hace merge de ventas locales en la carga inicial (igual que en recarga), recuperando cualquier venta que no haya llegado al servidor. Si detecta ventas recuperadas, muestra un toast y las sincroniza al servidor automáticamente.
+- **Fix 2:** Todos los filtros de fecha ahora usan `v.fecha` (campo guardado explícitamente en locale) en lugar de `v.id` (timestamp sensible a zona horaria entre dispositivos). Esto afecta `renderReporte`, `generarTextoCierre`, `exportarReporteCSV`, `renderCierre`, `verCierreParcial` y `descargarCierreParcial`.
 
 ---
 
-## PENDIENTE PARA PRÓXIMA SESIÓN 🔜
+## LO QUE SE CORRIGIÓ EN LA SESIÓN ANTERIOR ✅ (16 junio 2026)
 
-### Prioridad 1 — Rappi Dashboard
-- Cha va a compartir screenshots del dashboard Rappi
-- Análisis: baseline actual → plan para llegar a $50,000 en junio
-- Incluir: campañas activas, comisiones, estructura de costos Rappi
+### 1. API_KEY expuesta en código fuente (CRÍTICO)
+- **Antes:** `const API_KEY = 'instinto-pos-2026'` visible para cualquiera en DevTools
+- **Ahora:** Modal de PIN al abrir el POS → servidor genera token HMAC-SHA256 con TTL 12h
+- El token se guarda en `sessionStorage` — solo pide PIN una vez por sesión
 
-### Prioridad 2 — DiDi Food Dashboard
-- Cha va a compartir screenshots DiDi
-- Meta: $25,000 en junio
-- Análisis: misma estructura que UE
+### 2. Sin rate limiting en endpoints de PIN (CRÍTICO)
+- **Antes:** Podías adivinar el PIN en segundos con un script
+- **Ahora:** Máximo 10 intentos por minuto por IP en `/api/auth`, `/api/validate-pin` y `/api/gerentes/validar`
 
-### Prioridad 3 — Monitoreo de impacto precio
-- En 7 días: revisar ventas para medir elasticidad (¿bajó volumen con precios nuevos?)
-- KPI crítico: si tickets promedio subió pero pedidos cayeron >15%, ajustar algún precio
+### 3. Zona horaria incorrecta en alertas de inventario (MEDIO)
+- **Antes:** `toISOString()` usaba UTC → después de las 7 PM México los días faltantes eran incorrectos
+- **Ahora:** `toLocaleDateString('sv-SE', { timeZone: 'America/Mexico_City' })`
+
+### 4. KDS — índices se desplazaban al cancelar ítems (CRÍTICO operativo)
+- **Antes:** Si cocina marcaba un ítem como "listo" y luego alguien lo cancelaba, el checkmark quedaba en el ítem equivocado
+- **Ahora:** Los ítems se identifican por su posición original en `cmd.items` — estable ante cancelaciones
+
+### 5. XSS en pantalla de cocina (MEDIO)
+- **Antes:** Nombres de platillo y notas iban directo a `innerHTML`
+- **Ahora:** Función `esc()` agregada, todos los datos del usuario escapados
 
 ---
 
-## CONTEXTO IMPORTANTE
+## PENDIENTE — PRÓXIMA SESIÓN 🔜
 
-- INSTINTO es el ÚNICO negocio de Cha (Mataléon y Perro Negro cerraron el 30 mayo 2026)
-- Ubicación: Avenida Plaza Villa M… (Mexico City)
-- Horario: Abre 1:00 PM los sábados
-- Plataformas activas: Uber Eats (principal), Rappi, DiDi Food
+> **Nota sobre cuentas de anoche:** Si la página fue recargada antes de este fix, las cuentas perdidas ya no se pueden recuperar automáticamente (localStorage fue sobreescrito con el estado del servidor). El fix previene futuros casos, pero no recupera datos ya perdidos.
+
+
+
+### Pendiente operativo (cuando quieras)
+| Bug | Impacto | Archivo |
+|-----|---------|---------|
+| PIN_ADMIN `1234` → cambiar a algo más seguro | Seguridad media | Vercel env vars |
+| `costoTotal` en turnos no proratea por horas | Dato incorrecto en nómina | `turnos.html:325` |
+| XSS en `reportes.html` | Seguridad media | `reportes.html` |
+| Ventana de conflicto sync 1 segundo (2 tablets simultáneos) | Pérdida silenciosa de datos | `api/index.js:64` |
+| CORS abierto a todos los orígenes | Seguridad baja | `api/index.js:11` |
+| PINs de gerentes en plaintext en Redis | Seguridad baja | `api/index.js:220` |
+
+### Para verificar en el restaurante (Windows)
+- Confirmar que el PIN modal funciona en las tablets
+- Confirmar que el KDS de cocina ya no desplaza ítems al cancelar
+- Confirmar que los datos de inventario muestran fechas correctas después de las 7 PM
+
+---
+
+## VARIABLES DE ENTORNO (proyecto instinto-sistema-cobranza)
+
+| Variable | Estado | Notas |
+|----------|--------|-------|
+| `API_SECRET` | ✅ Configurado | Desde mayo 2026. No cambiar. |
+| `PIN_ADMIN` | ⚠️ `1234` | Funciona pero es inseguro. Pendiente cambiar. |
+| `KV_REST_API_URL` | ⚠️ Needs Attention | Ya estaba así antes de hoy |
+| `KV_REST_API_TOKEN` | ⚠️ Needs Attention | Ya estaba así antes de hoy |
 
 ---
 
 ## PARA ARRANCAR LA PRÓXIMA SESIÓN
 
-Di: "continuemos con delivery" o "análisis Rappi" y adjunta los screenshots del dashboard.
+Di: **"continuemos con el POS"** y cargo este handoff automáticamente.
+
+Si quieres continuar con los bugs pendientes: **"corrige los bugs pendientes del POS"**
+Si quieres cambiar el PIN: **"cambia el PIN del POS"**
+
+---
+
+## CONTEXTO DELIVERY (sesión anterior — 30 mayo 2026)
+
+Meta junio 2026:
+- Uber Eats: **$100,000 MXN** ← precios actualizados, campañas optimizadas
+- Rappi: **$50,000 MXN** ← pendiente análisis dashboard
+- DiDi Food: **$25,000 MXN** ← pendiente análisis dashboard
 
 Estado: **UE listo. Faltan Rappi y DiDi.**
+Di: "análisis Rappi" o "análisis DiDi" y adjunta screenshots del dashboard.

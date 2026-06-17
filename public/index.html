@@ -1254,13 +1254,25 @@ async function cargarDatos(esRecarga){
         comandas = cleanServerCmd;
       }
     } else {
+      // Proteger ventas que guardaron en local pero cuyo POST a /api/guardar falló (red inestable, timeout)
+      // Sin este merge, al recargar la página se perderían para siempre
+      const _localVta=[];
+      try{const _lv=localStorage.getItem('i_vta');if(_lv)JSON.parse(_lv).forEach(v=>_localVta.push(v));}catch(_){}
+      const _srvVtaIds=new Set(serverVta.map(v=>v.id));
+      const _localOnly=_localVta.filter(v=>!_srvVtaIds.has(v.id));
       comandas = serverCmd;
-      ventas = serverVta;
+      ventas = _localOnly.length?[...serverVta,..._localOnly]:serverVta;
       meseros = safeMes;
       cancelaciones = d.canc || [];
-      // Si el servidor no tenía meseros pero los recuperamos de local, restaurarlos en servidor
+      const _needsSync=_localOnly.length>0||(serverMes.length===0&&safeMes.length>0);
+      if(_localOnly.length){
+        console.warn('🛡 Recuperadas',_localOnly.length,'venta(s) de localStorage que no estaban en el servidor');
+        toast(`🛡 ${_localOnly.length} venta(s) recuperada(s) — se guardaron localmente pero no habían llegado al servidor`);
+      }
       if(serverMes.length===0&&safeMes.length>0){
         console.warn('🛡 Meseros restaurados desde localStorage — restaurando en servidor...');
+      }
+      if(_needsSync){
         fetch('/api/guardar',{method:'POST',headers:{'Content-Type':'application/json','X-API-Key':API_KEY},body:JSON.stringify({cmd:comandas,vta:ventas,mes:meseros,canc:cancelaciones})}).catch(()=>{});
       }
     }
@@ -2554,7 +2566,11 @@ function renderReporte(){
   const hastaVal=document.getElementById('filtroHasta').value;
   const meseroFiltro=document.getElementById('filtroMesero').value;
   const _dateMs=d=>{const x=new Date(d+'T12:00:00');return new Date(x.getFullYear(),x.getMonth(),x.getDate()).getTime();};
-  const _vMs=v=>{const d=new Date(v.id);return new Date(d.getFullYear(),d.getMonth(),d.getDate()).getTime();};
+  // Prefiere v.fecha (locale guardado al abrir mesa) sobre v.id (timestamp — sensible a zona horaria entre dispositivos)
+  const _vMs=v=>{
+    if(v.fecha){const f=String(v.fecha);let iso;if(f.includes('/')){const[dd,mm,yy]=f.split('/');iso=`${yy}-${mm}-${dd}`;}else iso=f.slice(0,10);const x=new Date(iso+'T12:00:00');return new Date(x.getFullYear(),x.getMonth(),x.getDate()).getTime();}
+    const d=new Date(v.id);return new Date(d.getFullYear(),d.getMonth(),d.getDate()).getTime();
+  };
   const matchFecha=(v)=>{const vm=_vMs(v);if(desdeVal&&vm<_dateMs(desdeVal))return false;if(hastaVal&&vm>_dateMs(hastaVal))return false;return true;};
   const matchMesero=(v)=>!meseroFiltro||v.mesero===meseroFiltro;
   const vTodas=ventas.filter(v=>matchFecha(v)&&matchMesero(v));
@@ -2665,7 +2681,8 @@ function renderReporte(){
 
 function generarTextoCierre(fecha){
   const hoyStr=new Date(fecha+'T12:00:00').toLocaleDateString('es-MX');
-  const matchF=v=>new Date(v.id).toLocaleDateString('es-MX')===hoyStr;
+  const _vtaFecha=v=>{if(v.fecha)return String(v.fecha).includes('/')?String(v.fecha):new Date(v.fecha+'T12:00:00').toLocaleDateString('es-MX');return new Date(v.id).toLocaleDateString('es-MX');};
+  const matchF=v=>_vtaFecha(v)===hoyStr;
   const vFilt=ventas.filter(v=>matchF(v)&&!v.excluida);
   const cFilt=cancelaciones.filter(c=>matchF(c));
   const mAbiertas=comandas.filter(c=>c.estado==='abierta'&&matchF(c));
@@ -2784,14 +2801,17 @@ function exportarReporteCSV(){
   const hastaVal=document.getElementById('filtroHasta').value;
   const meseroFiltro=document.getElementById('filtroMesero').value;
   const _dateMs=d=>{const x=new Date(d+'T12:00:00');return new Date(x.getFullYear(),x.getMonth(),x.getDate()).getTime();};
-  const _vMs=v=>{const d=new Date(v.id);return new Date(d.getFullYear(),d.getMonth(),d.getDate()).getTime();};
+  const _vMs=v=>{
+    if(v.fecha){const f=String(v.fecha);let iso;if(f.includes('/')){const[dd,mm,yy]=f.split('/');iso=`${yy}-${mm}-${dd}`;}else iso=f.slice(0,10);const x=new Date(iso+'T12:00:00');return new Date(x.getFullYear(),x.getMonth(),x.getDate()).getTime();}
+    const d=new Date(v.id);return new Date(d.getFullYear(),d.getMonth(),d.getDate()).getTime();
+  };
   const matchFecha=v=>{const vm=_vMs(v);if(desdeVal&&vm<_dateMs(desdeVal))return false;if(hastaVal&&vm>_dateMs(hastaVal))return false;return true;};
   const vFilt=ventas.filter(v=>matchFecha(v)&&(!meseroFiltro||v.mesero===meseroFiltro)&&!v.excluida);
   const esc=s=>'"'+String(s==null?'':s).replace(/"/g,'""')+'"';
   const rows=[['Fecha','Hora','Mesa','Mesero','Método pago','Total','Propina','Descuento','Cortesías','Productos'].map(esc).join(',')];
   vFilt.forEach(v=>{
-    const d=new Date(v.id);
-    const fecha=`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+    // Prefiere v.fecha (guardado en locale) para el CSV — más confiable que el timestamp
+    let fecha;if(v.fecha){const f=String(v.fecha);if(f.includes('/')){const[dd,mm,yy]=f.split('/');fecha=`${yy}-${mm}-${dd}`;}else fecha=f.slice(0,10);}else{const d=new Date(v.id);fecha=`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;};
     const items=v.items.filter(it=>!it.cancelado).map(it=>`${it.q}x ${it.n}`).join('; ');
     rows.push([fecha,v.hora||'',v.mesa,v.mesero,v.pago,v.total,v.propina||0,(v.descuento?.valor)||0,v.cortesias||0,items].map(esc).join(','));
   });
@@ -2815,7 +2835,8 @@ function renderCierre(){
     meseros.forEach(m=>{const o=document.createElement('option');o.value=m;o.textContent=m;if(m===val)o.selected=true;sel.appendChild(o);});
   }
   const hoy=new Date().toLocaleDateString('es-MX');
-  const vHoy=ventas.filter(v=>new Date(v.id).toLocaleDateString('es-MX')===hoy);
+  const _vtaFechaStr=v=>{if(v.fecha)return String(v.fecha).includes('/')?String(v.fecha):new Date(v.fecha+'T12:00:00').toLocaleDateString('es-MX');return new Date(v.id).toLocaleDateString('es-MX');};
+  const vHoy=ventas.filter(v=>_vtaFechaStr(v)===hoy);
   const total=vHoy.reduce((s,v)=>s+v.total,0);
   const propTotal=vHoy.reduce((s,v)=>s+(v.propina||0),0);
   const abiertas=comandas.filter(c=>c.estado==='abierta');
@@ -2869,8 +2890,9 @@ async function verCierreParcial(){
     }catch(e){}
   }
   const turnoDesde=turnoInfo?turnoInfo.ts:0;
+  const _vtaFS=v=>{if(v.fecha)return String(v.fecha).includes('/')?String(v.fecha):new Date(v.fecha+'T12:00:00').toLocaleDateString('es-MX');return new Date(v.id).toLocaleDateString('es-MX');};
   const vMes=ventas.filter(v=>{
-    if(new Date(v.id).toLocaleDateString('es-MX')!==hoy)return false;
+    if(_vtaFS(v)!==hoy)return false;
     if(v.mesero!==mesero)return false;
     if(turnoDesde>0&&v.id<turnoDesde)return false;
     return true;
@@ -2911,8 +2933,9 @@ function descargarCierreParcial(){
   let turnoInfo=null;
   try{turnoInfo=JSON.parse(localStorage.getItem('i_turno_'+mesero)||'null');}catch(e){}
   const turnoDesde=turnoInfo?turnoInfo.ts:0;
+  const _vtaFD=v=>{if(v.fecha)return String(v.fecha).includes('/')?String(v.fecha):new Date(v.fecha+'T12:00:00').toLocaleDateString('es-MX');return new Date(v.id).toLocaleDateString('es-MX');};
   const vMes=ventas.filter(v=>{
-    if(new Date(v.id).toLocaleDateString('es-MX')!==hoy)return false;
+    if(_vtaFD(v)!==hoy)return false;
     if(v.mesero!==mesero)return false;
     if(turnoDesde>0&&v.id<turnoDesde)return false;
     return true;
