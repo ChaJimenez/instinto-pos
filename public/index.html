@@ -338,9 +338,9 @@ body { font-family: system-ui, -apple-system, sans-serif; background: #f5f5f3; m
 <div class="tabs">
   <button class="tab active" onclick="switchTab('nueva')">+ Comanda</button>
   <button class="tab" onclick="switchTab('abiertas')">Mapa de mesas <span id="badgeN"></span></button>
-  <button class="tab" onclick="switchTab('reporte')">Reporte</button>
-  <button class="tab" onclick="switchTab('cierre')">🔒 Cierre</button>
-  <button class="tab" onclick="switchTab('config')">⚙ Config</button>
+  <button class="tab" id="tabReporte" onclick="switchTab('reporte')">Reporte</button>
+  <button class="tab" id="tabCierre" onclick="switchTab('cierre')">🔒 Cierre</button>
+  <button class="tab" id="tabConfig" onclick="switchTab('config')">⚙ Config</button>
   <button class="tab" onclick="abrirAdmin()" style="flex:none;min-width:44px;font-size:15px;" title="Dashboard Gerencial">📊</button>
 </div>
 
@@ -1069,6 +1069,33 @@ body { font-family: system-ui, -apple-system, sans-serif; background: #f5f5f3; m
 
 <div class="toast" id="toast"></div>
 
+<!-- ── PANTALLA DE BLOQUEO ── -->
+<div id="lockScreen" style="display:none;position:fixed;inset:0;background:#0D2A5E;z-index:9998;flex-direction:column;align-items:center;justify-content:center;padding:32px 24px;">
+  <div style="color:#fff;font-size:30px;font-weight:900;letter-spacing:0.1em;margin-bottom:2px;">INSTINTO</div>
+  <div style="color:#a8bcdf;font-size:13px;margin-bottom:40px;" id="lockHora"></div>
+
+  <!-- Sección meseros -->
+  <div id="lockMeseroSection" style="width:100%;max-width:340px;">
+    <div style="color:#a8bcdf;font-size:11px;text-transform:uppercase;letter-spacing:.1em;margin-bottom:14px;text-align:center;">¿Quién eres?</div>
+    <div id="lockMeseroList" style="display:flex;flex-direction:column;gap:8px;margin-bottom:14px;max-height:55vh;overflow-y:auto;"></div>
+    <button onclick="mostrarLoginGerente()" style="width:100%;padding:12px;background:transparent;color:#6890c8;border:1px solid #2a4a7f;border-radius:10px;font-size:13px;cursor:pointer;margin-top:4px;">Acceso gerente →</button>
+  </div>
+
+  <!-- Sección gerente -->
+  <div id="lockGerenteSection" style="display:none;width:100%;max-width:340px;">
+    <div style="color:#a8bcdf;font-size:11px;text-transform:uppercase;letter-spacing:.1em;margin-bottom:14px;text-align:center;">Acceso gerente</div>
+    <select id="lockGerenteNombre" style="width:100%;padding:11px 13px;border:1px solid #2a4a7f;border-radius:10px;font-size:14px;background:#1a3a6e;color:#fff;outline:none;margin-bottom:10px;appearance:none;">
+      <option value="">— Selecciona tu nombre —</option>
+    </select>
+    <input id="lockGerentePin" type="password" inputmode="numeric" maxlength="8" placeholder="PIN"
+      style="width:100%;box-sizing:border-box;padding:14px;font-size:22px;text-align:center;letter-spacing:8px;border:1px solid #2a4a7f;border-radius:10px;background:#1a3a6e;color:#fff;outline:none;margin-bottom:8px;"
+      onkeydown="if(event.key==='Enter')_submitLockGerente()">
+    <div id="lockGerenteError" style="color:#ef4444;font-size:12px;min-height:16px;margin-bottom:8px;text-align:center;"></div>
+    <button onclick="_submitLockGerente()" style="width:100%;padding:14px;background:#f5a020;color:#000;font-weight:800;font-size:15px;border:none;border-radius:10px;cursor:pointer;margin-bottom:10px;">Entrar</button>
+    <button onclick="mostrarLoginMesero()" style="width:100%;padding:9px;background:transparent;color:#6890c8;border:none;font-size:13px;cursor:pointer;">← Volver</button>
+  </div>
+</div>
+
 <!-- Modal de acceso PIN -->
 <div id="pinGate" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:9999;display:flex;align-items:center;justify-content:center;">
   <div style="background:#1a1a1a;border:1px solid #333;border-radius:16px;padding:36px 32px;width:320px;text-align:center;">
@@ -1085,7 +1112,7 @@ body { font-family: system-ui, -apple-system, sans-serif; background: #f5f5f3; m
 
 <script>
 // ── AUTO-RELOAD: fuerza recarga cuando hay nuevo código desplegado ──
-(function(){try{var V='20260616-1';if(localStorage.getItem('_posV')!==V){localStorage.setItem('_posV',V);location.reload(true);}}catch(e){}})();
+(function(){try{var V='20260617-2';if(localStorage.getItem('_posV')!==V){localStorage.setItem('_posV',V);location.reload(true);}}catch(e){}})();
 
 // ── Sesión autenticada ──
 let API_KEY = '';
@@ -1202,6 +1229,106 @@ let gerentesCache=[], gerenteCallback=null, gerenteCancelCallback=null;
 let modalPago="Efectivo", modalIdx=null, modalPropina=0, modalMixtoEf=0, modalMixtoTj=0, modalMixtoTipo='Débito';
 let pinCallback=null;
 let ultimaActualizacion=0;
+
+// ── ROLES Y BLOQUEO ──
+let rolActual = null; // null=bloqueado | 'mesero' | 'gerente'
+let _inactivityTimer = null;
+const LOCK_TIMEOUT = 5 * 60 * 1000; // 5 minutos sin actividad
+
+function resetInactivity(){
+  clearTimeout(_inactivityTimer);
+  if(rolActual!==null) _inactivityTimer=setTimeout(mostrarLockScreen, LOCK_TIMEOUT);
+}
+
+function mostrarLockScreen(){
+  clearTimeout(_inactivityTimer);
+  rolActual=null;
+  const ls=document.getElementById('lockScreen');
+  ls.style.display='flex';
+  // Hora
+  const _tick=()=>{const el=document.getElementById('lockHora');if(el)el.textContent=new Date().toLocaleTimeString('es-MX',{hour:'2-digit',minute:'2-digit'});};
+  _tick();
+  renderLockMeseros();
+  mostrarLoginMesero();
+}
+
+function ocultarLockScreen(){
+  document.getElementById('lockScreen').style.display='none';
+  resetInactivity();
+}
+
+function renderLockMeseros(){
+  const list=document.getElementById('lockMeseroList');
+  if(!meseros.length){
+    list.innerHTML='<div style="color:#a8bcdf;text-align:center;font-size:13px;padding:16px;">No hay meseros configurados aún.<br>Pide a un gerente que los agregue.</div>';
+    return;
+  }
+  list.innerHTML=meseros.map(m=>{
+    const ms=m.replace(/'/g,"\\'");
+    return `<button onclick="entrarComoMesero('${ms}')"
+      style="width:100%;padding:14px 16px;background:#1a3a6e;color:#fff;border:none;border-radius:10px;font-size:15px;font-weight:600;cursor:pointer;text-align:center;transition:background .12s;"
+      onmouseover="this.style.background='#243f7a'" onmouseout="this.style.background='#1a3a6e'">${m}</button>`;
+  }).join('');
+}
+
+function entrarComoMesero(nombre){
+  rolActual='mesero';
+  ocultarLockScreen();
+  aplicarPermisoRol();
+  // Pre-seleccionar el mesero en el formulario de comanda
+  const sel=document.getElementById('meseroSel');
+  if(sel&&meseros.includes(nombre))sel.value=nombre;
+  switchTab('abiertas');
+  toast('Bienvenido, '+nombre);
+}
+
+function mostrarLoginGerente(){
+  document.getElementById('lockMeseroSection').style.display='none';
+  const sec=document.getElementById('lockGerenteSection');
+  sec.style.display='block';
+  // Poblar select con gerentes en caché
+  const sel=document.getElementById('lockGerenteNombre');
+  sel.innerHTML='<option value="">— Selecciona tu nombre —</option>'+
+    gerentesCache.map(n=>`<option value="${n}">${n}</option>`).join('');
+  document.getElementById('lockGerentePin').value='';
+  document.getElementById('lockGerenteError').textContent='';
+  setTimeout(()=>document.getElementById('lockGerentePin').focus(),150);
+}
+
+function mostrarLoginMesero(){
+  document.getElementById('lockGerenteSection').style.display='none';
+  document.getElementById('lockMeseroSection').style.display='block';
+}
+
+async function _submitLockGerente(){
+  const nombre=document.getElementById('lockGerenteNombre').value;
+  const pin=document.getElementById('lockGerentePin').value;
+  if(!nombre){document.getElementById('lockGerenteError').textContent='Selecciona tu nombre';return;}
+  if(!pin){document.getElementById('lockGerenteError').textContent='Ingresa tu PIN';return;}
+  try{
+    const r=await fetch('/api/gerentes/validar',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({nombre,pin})});
+    const d=await r.json();
+    if(d.ok){
+      rolActual='gerente';
+      ocultarLockScreen();
+      aplicarPermisoRol();
+      switchTab('abiertas');
+      toast('Bienvenido, '+nombre);
+    }else{
+      document.getElementById('lockGerenteError').textContent='PIN incorrecto';
+      document.getElementById('lockGerentePin').value='';
+      document.getElementById('lockGerentePin').focus();
+    }
+  }catch(e){document.getElementById('lockGerenteError').textContent='Error de conexión';}
+}
+
+function aplicarPermisoRol(){
+  const esGerente=rolActual==='gerente';
+  ['tabReporte','tabCierre','tabConfig'].forEach(id=>{
+    const el=document.getElementById(id);
+    if(el)el.style.display=esGerente?'':'none';
+  });
+}
 let editVentaId=null, editPagoAct='';
 let currentDescuento={tipo:null,pct:0,valor:0};
 let modalDescuento={tipo:null,pct:0,valor:0};
@@ -2203,49 +2330,72 @@ function ajustarComensales(delta){
 }
 
 function generarRecomendaciones(){
-  // Busca precio y categoría real en MENU
-  const buscarEnMenu = nombre => {
-    for(const [cat, items] of Object.entries(MENU)){
-      const f = items.find(x => x.n === nombre && x.activo !== false);
-      if(f) return {p: f.p, cat};
+  // Busca precio y categoría real en MENU (siempre usa el menú cargado de Redis)
+  const buscarEnMenu=nombre=>{
+    for(const [cat,items] of Object.entries(MENU)){
+      const f=items.find(x=>x.n===nombre&&x.activo!==false);
+      if(f)return{p:f.p,cat};
     }
     return null;
   };
 
-  // Candidatos base: bebidas primero, luego entradas, luego burguer
-  const candidatos = [
-    {n:'Corona',        p:60,  tag:'🍺 Cerveza',     cat:'Cervezas'},
-    {n:'Soda del día',  p:35,  tag:'🥤 Refresco',    cat:'Refrescos'},
-    {n:'Corona Light',  p:60,  tag:'🍺 Cerveza',     cat:'Cervezas'},
-    {n:'Agua mineral',  p:35,  tag:'💧 Bebida',      cat:'Refrescos'},
-    {n:'Papas Fritas',  p:58,  tag:'🍟 Entrada',     cat:'Entradas'},
-    {n:'Doble Doble',   p:128, tag:'⭐ Bestseller',  cat:'Hamburguesas'},
-  ];
+  // Normalizar v.fecha a YYYY-MM-DD para comparar con la fecha de hoy
+  const _normFechaLocal=v=>{
+    if(v.fecha){
+      const f=String(v.fecha);
+      if(f.includes('/')){const[dd,mm,yy]=f.split('/');return`${yy}-${String(mm).padStart(2,'0')}-${String(dd).padStart(2,'0')}`;}
+      return f.slice(0,10);
+    }
+    return new Date(v.id).toLocaleDateString('sv-SE',{timeZone:'America/Mexico_City'});
+  };
 
-  // Precio real del día (top vendido hoy)
-  const hoy = new Date().toLocaleDateString('es-MX');
-  const conteo = {};
-  ventas.filter(v => v.fecha === hoy).forEach(v =>
-    v.items.filter(it=>!it.cancelado).forEach(it =>{ conteo[it.n]=(conteo[it.n]||0)+it.q; })
+  const hoy=new Date().toLocaleDateString('sv-SE',{timeZone:'America/Mexico_City'});
+
+  // Contar qué se vendió hoy (solo ítems activos, sin prefijo +)
+  const conteo={};
+  ventas.filter(v=>_normFechaLocal(v)===hoy).forEach(v=>
+    (v.items||[]).filter(it=>!it.cancelado&&!it.n.startsWith('+')).forEach(it=>{
+      conteo[it.n]=(conteo[it.n]||0)+(it.q||1);
+    })
   );
-  const topHoy = Object.entries(conteo).sort((a,b)=>b[1]-a[1])[0];
 
-  const lista = [];
+  // Ordenar por ventas del día
+  const topHoy=Object.entries(conteo).sort((a,b)=>b[1]-a[1]);
 
-  // 1. Más pedido hoy si tiene precio real y no es ya en candidatos
-  if(topHoy){
-    const found = buscarEnMenu(topHoy[0]);
-    if(found && found.p > 0 && !candidatos.find(c=>c.n===topHoy[0])){
-      lista.push({n:topHoy[0], p:found.p, tag:'🔥 Más pedido hoy', cat:found.cat});
+  const lista=[];
+
+  // 1. Top 3 más pedidos hoy que estén en el menú activo con precio real
+  for(const [nombre,cnt] of topHoy){
+    if(lista.length>=3)break;
+    const found=buscarEnMenu(nombre);
+    if(!found||found.p<=0)continue;
+    const etiq=lista.length===0?'🔥 #1 más pedido':lista.length===1?'🔥 #2 más pedido':'🔥 #3 más pedido';
+    lista.push({n:nombre,p:found.p,tag:etiq,cat:found.cat});
+  }
+
+  // 2. Si hay menos de 3, rellenar con bebidas del menú real (primera activa de cada cat bebida)
+  if(lista.length<3){
+    const bebs=['Refrescos','Cervezas','Preparados','Cervezas Artesanales','Cafés'];
+    for(const cat of bebs){
+      if(lista.length>=3)break;
+      const items=(MENU[cat]||[]).filter(x=>x.activo!==false);
+      if(!items.length)continue;
+      const item=items[0];
+      if(lista.find(r=>r.n===item.n))continue;
+      lista.push({n:item.n,p:item.p,tag:'🥤 '+cat,cat});
     }
   }
 
-  // 2. Rellenar con candidatos (precio real si está en MENU, sino el hardcoded)
-  for(const c of candidatos){
-    if(lista.length >= 3) break;
-    if(lista.find(r=>r.n===c.n)) continue;
-    const found = buscarEnMenu(c.n);
-    lista.push({n:c.n, p:found?found.p:c.p, tag:c.tag, cat:found?found.cat:c.cat});
+  // 3. Si aún faltan, rellenar con hamburguesas/entradas del menú real
+  if(lista.length<3){
+    for(const cat of ['Hamburguesas','Especiales','Entradas']){
+      if(lista.length>=3)break;
+      for(const item of (MENU[cat]||[]).filter(x=>x.activo!==false)){
+        if(lista.length>=3)break;
+        if(lista.find(r=>r.n===item.n))continue;
+        lista.push({n:item.n,p:item.p,tag:'⭐ '+cat,cat});
+      }
+    }
   }
 
   return lista.slice(0,3);
@@ -2595,10 +2745,11 @@ async function guardarEdicionVenta(){
 
 // ── REPORTE ──
 function setRangoReporte(p){
-  const hoy=new Date();
+  const _hoy=new Date().toLocaleDateString('sv-SE',{timeZone:'America/Mexico_City'});
+  const hoy=new Date(_hoy+'T12:00:00');
   const fmt=d=>`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
-  let desde,hasta=fmt(hoy);
-  if(p==='hoy'){desde=fmt(hoy);}
+  let desde,hasta=_hoy;
+  if(p==='hoy'){desde=_hoy;}
   else if(p==='ayer'){const ay=new Date(hoy);ay.setDate(ay.getDate()-1);desde=hasta=fmt(ay);}
   else if(p==='semana'){const s=new Date(hoy);s.setDate(s.getDate()-6);desde=fmt(s);}
   else if(p==='mes'){desde=fmt(new Date(hoy.getFullYear(),hoy.getMonth(),1));}
@@ -4603,12 +4754,14 @@ function switchConfig(section){
 }
 
 function switchTab(tab){
+  // Redirigir meseros a mapa si intentan acceder a secciones restringidas
+  if(rolActual==='mesero'&&['reporte','cierre','config','admin'].includes(tab)){tab='abiertas';}
   const tabs=['nueva','abiertas','reporte','cierre','config','admin'];
   document.querySelectorAll('.tab').forEach((t,i)=>t.classList.toggle('active',tabs[i]===tab));
   document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
   document.getElementById('screen-'+tab).classList.add('active');
   if(tab==='abiertas')renderAbiertas();
-  if(tab==='reporte'){if(!document.getElementById('filtroDesde').value){const _h=new Date();const _hoy=`${_h.getFullYear()}-${String(_h.getMonth()+1).padStart(2,'0')}-${String(_h.getDate()).padStart(2,'0')}`;document.getElementById('filtroDesde').value=_hoy;document.getElementById('filtroHasta').value=_hoy;}renderMeseroSelect();renderReporte();}
+  if(tab==='reporte'){if(!document.getElementById('filtroDesde').value){const _hoy=new Date().toLocaleDateString('sv-SE',{timeZone:'America/Mexico_City'});document.getElementById('filtroDesde').value=_hoy;document.getElementById('filtroHasta').value=_hoy;}renderMeseroSelect();renderReporte();}
   if(tab==='cierre')renderCierre();
   if(tab==='config'){switchConfig('equipo');}
   if(tab==='admin')renderAdmin();
@@ -4640,9 +4793,19 @@ if('serviceWorker' in navigator){
 
 // ── INIT ──
 document.getElementById('fechaHoy').textContent=new Date().toLocaleDateString('es-MX',{weekday:'long',day:'numeric',month:'long'});
+
+// Listeners de inactividad — resetean el timer cada vez que el usuario toca la pantalla
+['touchstart','mousedown','keydown','scroll'].forEach(ev=>{
+  document.addEventListener(ev,()=>{if(rolActual!==null)resetInactivity();},{passive:true});
+});
+
 cargarGerentes();
 cargarMenuRemoto().then(()=>{initMenu();renderTicket();});
-cargarDatos().then(()=>{renderMeseroSelect();renderAbiertas();});
+cargarDatos().then(()=>{
+  renderMeseroSelect();
+  renderAbiertas();
+  mostrarLockScreen(); // Pantalla de bloqueo inicial — mesero o gerente selecciona quién es
+});
 </script>
 <div id="printArea"></div>
 </body>

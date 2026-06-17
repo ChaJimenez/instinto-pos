@@ -1,6 +1,6 @@
 // INSTINTO POS — Service Worker v4
 // Cachea el app shell completo para funcionar sin conexión
-const CACHE = 'instinto-pos-v5';
+const CACHE = 'instinto-pos-v6';
 const SHELL = [
   '/',
   '/index.html',

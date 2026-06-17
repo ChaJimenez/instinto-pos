@@ -665,7 +665,9 @@ app.post('/api/menu-cambios', async (req, res) => {
 app.get('/api/reportes', async (req, res) => {
   try {
     const { desde, hasta } = req.query;
-    let ventas = await kv.get(KEYS.vta) || [];
+    // Mergear WAL: incluye cobros que aún no se guardaron en i:vta
+    const [vtaRaw, wal] = await Promise.all([kv.get(KEYS.vta), walRead()]);
+    let ventas = walMerge(vtaRaw, wal);
 
     // Si el rango incluye datos más viejos que 90 días, buscar también en archivos
     if (desde) {
@@ -1007,7 +1009,7 @@ app.post('/api/webhooks/deliverect', async (req, res) => {
 
     const subtotal = items.reduce((s, it) => s + it.p * it.q, 0);
     const hora  = new Date().toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit', timeZone: 'America/Mexico_City' });
-    const fecha = new Date().toLocaleDateString('es-MX', { timeZone: 'America/Mexico_City' });
+    const fecha = new Date().toLocaleDateString('sv-SE', { timeZone: 'America/Mexico_City' });
 
     const comanda = {
       id:        Date.now(),

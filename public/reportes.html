@@ -240,6 +240,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 <script>
 // ── Helpers ──
 const fmt$ = n => '$' + Math.round(n).toLocaleString('es-MX');
+const esc = s => { const d = document.createElement('div'); d.textContent = String(s||''); return d.innerHTML; };
 const fmtD = iso => { const [y,m,d]=iso.split('-'); return `${d}/${m}`; };
 const fmtDLong = iso => new Date(iso+'T12:00:00').toLocaleDateString('es-MX',{weekday:'short',day:'numeric',month:'short'});
 const fechaHoy = () => new Date().toLocaleDateString('sv-SE',{timeZone:'America/Mexico_City'});
@@ -446,8 +447,8 @@ function renderInventario({ consumoPorInsumo = [], sinReceta = [], pctCobertura 
           diasClass = diasRest <= 2 ? 'inv-badge-crit' : diasRest <= 7 ? 'inv-badge-warn' : 'inv-badge-ok';
         }
         return `<tr>
-          <td style="font-weight:500;">${ins.nombre}</td>
-          <td style="color:#888;">${ins.unidad}</td>
+          <td style="font-weight:500;">${esc(ins.nombre)}</td>
+          <td style="color:#888;">${esc(ins.unidad)}</td>
           <td class="num-right">${ins.consumido}</td>
           <td class="num-right">${ins.stockActual}</td>
           <td class="num-right">${diasClass ? `<span class="${diasClass}">${diasLabel}</span>` : diasLabel}</td>
@@ -458,7 +459,7 @@ function renderInventario({ consumoPorInsumo = [], sinReceta = [], pctCobertura 
   if (sinReceta.length) {
     html += `<div class="sin-receta-list">
       <div class="sin-receta-title">Sin receta — no descuentan inventario</div>
-      <div class="sin-receta-tags">${sinReceta.map(n => `<span class="sin-receta-tag">${n}</span>`).join('')}</div>
+      <div class="sin-receta-tags">${sinReceta.map(n => `<span class="sin-receta-tag">${esc(n)}</span>`).join('')}</div>
     </div>`;
   }
 
@@ -554,8 +555,8 @@ function renderProductos(porProducto) {
       const pct = Math.round(p.total/maxT*80);
       return `<tr>
         <td><span class="rank">${i+1}</span></td>
-        <td style="font-weight:500;">${p.nombre}<span class="mini-bar" style="width:${pct}px;"></span></td>
-        <td><span class="badge">${p.cat||'—'}</span></td>
+        <td style="font-weight:500;">${esc(p.nombre)}<span class="mini-bar" style="width:${pct}px;"></span></td>
+        <td><span class="badge">${esc(p.cat||'—')}</span></td>
         <td class="num-right" style="color:#555;">${p.unidades}</td>
         <td class="num-right" style="font-weight:700;color:#0D2A5E;">${fmt$(p.total)}</td>
       </tr>`;
@@ -571,7 +572,7 @@ function renderMesero(porMesero) {
     porMesero.map(m => {
       const pct = m.total/maxT*100;
       return `<div class="bar-row">
-        <div class="bar-label wide">${m.nombre}</div>
+        <div class="bar-label wide">${esc(m.nombre)}</div>
         <div class="bar-track"><div class="bar-fill amber" style="width:${pct}%"></div></div>
         <div class="bar-val">${fmt$(m.total)}</div>
       </div>`;
@@ -583,7 +584,7 @@ function renderMesero(porMesero) {
       </tr></thead>
       <tbody>` +
     porMesero.map(m => `<tr>
-      <td style="font-weight:500;">${m.nombre}</td>
+      <td style="font-weight:500;">${esc(m.nombre)}</td>
       <td class="num-right">${m.cuentas}</td>
       <td class="num-right" style="font-weight:700;color:#0D2A5E;">${fmt$(m.total)}</td>
       <td class="num-right" style="color:#555;">${fmt$(m.ticketProm)}</td>
@@ -600,7 +601,7 @@ function renderCategoria(porCategoria) {
       const pct = c.total/maxT*100;
       const pctT = Math.round(c.total/totalCat*100);
       return `<div class="bar-row">
-        <div class="bar-label wide">${c.cat}</div>
+        <div class="bar-label wide">${esc(c.cat)}</div>
         <div class="bar-track"><div class="bar-fill green" style="width:${pct}%"></div></div>
         <div class="bar-val">${fmt$(c.total)} <span style="color:#aaa;font-size:11px;">${pctT}%</span></div>
       </div>`;
