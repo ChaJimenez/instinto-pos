@@ -1,7 +1,7 @@
 # HANDOFF — POS INSTINTO
-**Última actualización:** 17 junio 2026 · tarde
+**Última actualización:** 19 junio 2026 (tarde)
 **Rama:** `main` · Deploy automático en Vercel al hacer push
-**Commit activo:** `72f322d`
+**Commit activo:** `76d64a3`
 
 ---
 
@@ -15,7 +15,33 @@ Sistema POS en producción, estable. Hoy se resolvieron bugs críticos de sincro
 
 ---
 
-## LO QUE SE HIZO HOY ✅ (17 junio 2026 — sesión tarde)
+## LO QUE SE HIZO HOY ✅ (19 junio 2026 — sesión tarde)
+
+### Reducción de polling — Vercel free tier rescatado
+- Vercel reportó 1.1M Edge Requests (límite: 1M) y 1.1M Function Invocations
+- Causa: `cocina.html` hacía poll cada **3s**, `index.html` cada **6s** con 3 dispositivos activos
+- Fix: cocina → **10s**, caja sync → **15s** (2 líneas cambiadas, sin afectar guardado de datos)
+- Proyección: de ~1.1M baja a ~380–420k requests/mes — bien dentro del plan gratuito
+- Commit `76d64a3` pusheado a `main` → Vercel redeploy automático
+
+### Diagnóstico de proyectos Vercel
+- **`instinto-pos`** en Vercel = proyecto huérfano. Sin repo Git conectado, nunca usado en producción.
+  → Se puede eliminar sin afectar nada. Pasos: Vercel → instinto-pos → Settings → Delete Project
+- **`avyna-crm`** = "No Production Deployment" → no consume nada, no vale la pena mover a otra cuenta
+- **`instinto-admin`**, **`instinto-inventario`** = inactivos pero pausados — no acción urgente
+
+---
+
+## LO QUE SE HIZO ANTES ✅ (19 junio 2026 — mañana)
+
+### Mapa de mesas — resumen de items sin entrar a editar
+- Al tocar una mesa ocupada, el popup ahora muestra la lista de productos (cantidad × nombre, precio, notas, cortesías) con total al pie
+- Sin cambios en los botones existentes (Imprimir, Editar, Cobrar)
+- `div#mesaOpItems` agregado en HTML del modal; `mostrarOpcionesMesa()` lo puebla con los ítems activos
+
+---
+
+## LO QUE SE HIZO ANTES ✅ (17 junio 2026 — sesión tarde)
 
 ### Fix #1 — Cobros que no aparecían (WAL faltante en cobrarComanda)
 - `cobrarComanda()` (flujo "Nueva" tab) no tenía llamada a `/api/cobro` — si `guardar()` fallaba, la venta se perdía
@@ -63,7 +89,8 @@ Sistema POS en producción, estable. Hoy se resolvieron bugs críticos de sincro
 | CORS abierto a todos los orígenes | Seguridad baja | `api/index.js` línea 12 |
 | PINs de gerentes en plaintext en Redis | Seguridad baja | `api/index.js` ≈ línea 372 |
 | Rate limiting no funciona cross-instance en Vercel serverless | Seguridad baja | `api/index.js` línea 86 |
-| Polling cada 6s consume ~1.3M comandos/mes con 3 dispositivos | Infraestructura | Reducir a 15s en `index.html` |
+| ~~Polling agresivo consume ~1.3M requests/mes~~ | ✅ Resuelto hoy | cocina→10s, caja→15s (`commit 76d64a3`) |
+| Eliminar proyecto `instinto-pos` huérfano en Vercel | Limpieza | Vercel → instinto-pos → Settings → Delete |
 
 ---
 

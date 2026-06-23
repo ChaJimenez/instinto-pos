@@ -546,7 +546,9 @@ app.post('/api/menu', async (req, res) => {
     const { pin, categorias, extras, log86 } = req.body || {};
     if (pin !== PIN) return res.status(401).json({ error: 'PIN incorrecto' });
     if (!categorias || typeof categorias !== 'object') return res.status(400).json({ error: 'Formato inválido' });
-    await kv.set(MENU_KEY, { categorias, extras: extras || [] });
+    // PERSISTENCIA: TTL de 90 días para asegurar que no expire en cambios normales
+    // Si el TTL es muy corto, menú se pierde cuando se reinicia Redis
+    await kv.set(MENU_KEY, { categorias, extras: extras || [] }, { ex: 60 * 60 * 24 * 90 });
     if (Array.isArray(log86) && log86.length) {
       await kv.rpush('i:86log', ...log86.map(e => JSON.stringify(e)));
       await kv.ltrim('i:86log', -500, -1);

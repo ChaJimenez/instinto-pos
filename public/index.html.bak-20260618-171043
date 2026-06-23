@@ -1049,8 +1049,7 @@ body { font-family: system-ui, -apple-system, sans-serif; background: #f5f5f3; m
 <div class="modal-bg" id="modalMesaOpciones">
   <div class="modal" style="max-width:320px;">
     <h3 id="mesaOpTitle">Mesa</h3>
-    <div id="mesaOpInfo" style="font-size:13px;color:#888;margin-bottom:12px;"></div>
-    <div id="mesaOpItems" style="background:#f9f9f9;border-radius:8px;padding:10px 12px;margin-bottom:16px;max-height:220px;overflow-y:auto;font-size:14px;line-height:1.8;text-align:left;"></div>
+    <div id="mesaOpInfo" style="font-size:13px;color:#888;margin-bottom:20px;"></div>
     <button class="btn btn-outline" onclick="opcionImprimirMesa()" style="border-color:#1a1a1a;color:#1a1a1a;">🖨 Imprimir cuenta</button>
     <button class="btn btn-outline" onclick="opcionEditarMesa()">✏ Editar comanda</button>
     <button class="btn btn-dark" onclick="opcionCobrarMesa()">Cobrar</button>
@@ -1185,35 +1184,8 @@ async function cargarMenuRemoto(){
     if(d.menu&&d.menu.categorias){
       MENU=d.menu.categorias;
       if(d.menu.extras&&d.menu.extras.length) EXTRAS=d.menu.extras;
-      // Guardar en localStorage como respaldo permanente
-      try{
-        localStorage.setItem('i_menu_cache',JSON.stringify({categorias:MENU,extras:EXTRAS}));
-        localStorage.setItem('i_menu_cache_ts',String(Date.now()));
-      }catch(_){}
-    } else {
-      // BUG FIX: Si servidor devuelve null, intentar restaurar desde localStorage
-      const cached=localStorage.getItem('i_menu_cache');
-      if(cached){
-        try{
-          const c=JSON.parse(cached);
-          MENU=c.categorias||MENU;
-          EXTRAS=c.extras||EXTRAS;
-          console.warn('⚠ Menú restaurado desde caché local (servidor no tenía datos)');
-        }catch(_){}
-      }
     }
-  }catch(e){
-    // Fallback: intentar localStorage si servidor no responde
-    const cached=localStorage.getItem('i_menu_cache');
-    if(cached){
-      try{
-        const c=JSON.parse(cached);
-        MENU=c.categorias||MENU;
-        EXTRAS=c.extras||EXTRAS;
-        console.warn('⚠ Menú restaurado desde caché local (servidor sin conexión)');
-      }catch(_){}
-    }
-  }
+  }catch(e){/* fallback al menú hardcodeado */}
 }
 
 // ── MATERIA PRIMA — Config de insumos por producto ──
@@ -1405,11 +1377,7 @@ async function cargarDatos(esRecarga){
       ventas = mergedVentas;
       meseros = safeMes;
       cancelaciones = d.canc || [];
-      // BUG #3 FIX: NO pisar servidor corrupto — validar antes de merge
-      if(cleanServerCmd.length===0&&serverCmd.length>0&&soloLocales.length===0){
-        console.error('⚠ Servidor devolvió datos vacíos pero tenía comandas. NO pisamos.');
-        comandas=comandas; // Mantener locales
-      }else if(soloLocales.length || localOnlyVentas.length || serverMes.length===0&&safeMes.length>0){
+      if(soloLocales.length || localOnlyVentas.length || serverMes.length===0&&safeMes.length>0){
         if(soloLocales.length) console.warn('🛡 Protegidas',soloLocales.length,'comanda(s) local(es):',soloLocales.map(c=>'Mesa '+c.mesa));
         if(serverMes.length===0&&safeMes.length>0) console.warn('🛡 Meseros restaurados desde local — servidor los había perdido');
         const merged=[...cleanServerCmd,...soloLocales];
@@ -1475,15 +1443,7 @@ async function guardar(){
       headers:{'Content-Type':'application/json','X-API-Key':API_KEY},
       body:JSON.stringify({cmd:comandas,vta:ventas,mes:meseros,canc:cancelaciones,...(ultimaActualizacion>0?{ts:ultimaActualizacion}:{})})
     });
-    if(_gResp.status===409){
-      toast('⚠ Conflicto de sync — recargando datos...');
-      await cargarDatos(true);
-      // BUG #4 FIX: Re-intentar guardar después de resolver conflicto
-      if((comandas.length||ventas.length)&&navigator.onLine){
-        setTimeout(()=>guardar().catch(()=>{}),1000);
-      }
-      return;
-    }
+    if(_gResp.status===409){toast('⚠ Conflicto de sync — recargando datos...');cargarDatos(true);return;}
     if(!_gResp.ok){throw new Error('HTTP '+_gResp.status);}
     // Actualizar marca de tiempo local para que el poll no recargue el estado que acabamos de guardar
     ultimaActualizacion = Date.now();
@@ -1499,102 +1459,10 @@ async function guardar(){
   }
 }
 
-// ── SYNC EN TIEMPO REAL (WebSocket + SSE + fallback polling) ──
+// ── SYNC EN TIEMPO REAL (polling 6s) ──
 function setSyncDot(on){
   const d=document.getElementById('syncDot');
   if(d) d.className='sync-dot'+(on?'':' off');
-}
-
-let _syncConn=null;
-let _pendingSync=false;
-let _syncRetryTimer=null;
-
-// Iniciar conexión de sync: WebSocket si está disponible, sino SSE
-async function initSync(){
-  if(_syncConn) return;
-
-  // Intentar WebSocket primero (local dev)
-  if(window.location.protocol==='http:'){
-    const proto=window.location.protocol==='https:'?'wss:':'ws:';
-    const wsUrl=`${proto}//${window.location.host}/api/ws`;
-    try{
-      _syncConn=new WebSocket(wsUrl);
-      _syncConn.onopen=()=>{console.log('📡 WebSocket conectado');setSyncDot(true);};
-      _syncConn.onmessage=(e)=>{
-        try{
-          const msg=JSON.parse(e.data);
-          if(msg.type==='connected'||msg.type===undefined)return;
-          handleSyncEvent(msg);
-        }catch(err){console.warn('WS parse error:',err);}
-      };
-      _syncConn.onerror=()=>{console.warn('WS error, fallback a SSE');_syncConn=null;initSSE();};
-      _syncConn.onclose=()=>{console.warn('WS cerrado');_syncConn=null;scheduleReconnect();};
-      return;
-    }catch(e){console.warn('WS no disponible:',e.message);}
-  }
-
-  // Fallback a SSE (Vercel + cloud)
-  initSSE();
-}
-
-function initSSE(){
-  if(_syncConn) return;
-  try{
-    // BUG #7 FIX: Pasar token en query param (EventSource no soporta headers custom)
-    const sseUrl=`/api/sync?token=${encodeURIComponent(API_KEY)}&t=${Date.now()}`;
-    const sse=new EventSource(sseUrl);
-    sse.onmessage=(e)=>{
-      if(e.data.startsWith(':'))return; // comentarios/heartbeat
-      try{
-        const msg=JSON.parse(e.data);
-        handleSyncEvent(msg);
-      }catch(err){}
-    };
-    sse.onerror=()=>{sse.close();scheduleReconnect();};
-    _syncConn={close:()=>sse.close()};
-    setSyncDot(true);
-  }catch(e){console.warn('SSE error:',e.message);scheduleReconnect();}
-}
-
-function scheduleReconnect(){
-  setSyncDot(false);
-  if(_syncRetryTimer)clearTimeout(_syncRetryTimer);
-  _syncRetryTimer=setTimeout(()=>{_syncConn=null;initSync();},5000);
-}
-
-// Manejador de eventos de sync: NO interrumpe si estás editando, pero SÍ sincroniza en background
-async function handleSyncEvent(msg){
-  if(!msg.type||!navigator.onLine)return;
-  setSyncDot(true);
-
-  // Si estás creando/editando una comanda: sincroniza en background sin recargar UI
-  if(currentItems.length>0||editandoId){
-    if(!_pendingSync){
-      _pendingSync=true;
-      console.log('🔄 Sync en background (no interrumpemos edición)');
-      // Recargar datos silenciosamente sin renderizar
-      try{
-        const r=await fetch('/api/datos');
-        if(r.ok){
-          const d=await r.json();
-          // Merge inteligente: solo actualizar el estado sin causar conflicto
-          const serverCmd=d.cmd||[];
-          const serverVta=d.vta||[];
-          // Marcar que hay update pendiente, pero no re-render todavía
-          window._pendingSyncData={serverCmd,serverVta,ts:msg.ts||Date.now()};
-        }
-      }catch(e){}
-      _pendingSync=false;
-    }
-  } else {
-    // Usuario no está editando: sincronizar inmediatamente
-    ultimaActualizacion=msg.ts||Date.now();
-    await cargarDatos(true);
-    renderAbiertas();
-    renderMeseroSelect();
-    const openCount=comandas.filter(c=>c.estado==='abierta').length;
-    document.getElementById('badgeN').textContent=openCount?`(${openCount})`:'';
-  }
 }
 
 // Auto-save silencioso cada 5 min — respaldo continuo ante fallos de red
@@ -1602,33 +1470,30 @@ setInterval(()=>{
   if((ventas.length||comandas.length)&&navigator.onLine) guardar().catch(()=>{});
 },300000);
 
-// Fallback polling (solo si sync no disponible): cada 30s
 setInterval(async()=>{
-  if(_syncConn)return; // Si tenemos conexión real, no polllear
   try{
     const r=await fetch('/api/lastUpdate');
-    if(!r.ok)throw new Error('HTTP '+r.status);
+    if(!r.ok) throw new Error('HTTP '+r.status);
     const d=await r.json();
-    if(d.error)throw new Error('offline');
+    if(d.error) throw new Error('offline');
     const{ts}=d;
     if(ts>ultimaActualizacion&&ultimaActualizacion>0){
-      if(currentItems.length===0&&!editandoId){
-        ultimaActualizacion=ts;
-        await cargarDatos(true);
-        renderAbiertas();
-        renderMeseroSelect();
-        document.getElementById('badgeN').textContent=comandas.filter(c=>c.estado==='abierta').length?`(${comandas.filter(c=>c.estado==='abierta').length})`:'';
+      // No recargar si el usuario está en medio de crear o editar una comanda
+      if(currentItems.length>0||editandoId){
+        setSyncDot(true);
+        return;
       }
-    }else if(ultimaActualizacion===0){
+      ultimaActualizacion=ts;
+      await cargarDatos(true);
+      renderAbiertas();
+      renderMeseroSelect();
+      document.getElementById('badgeN').textContent=comandas.filter(c=>c.estado==='abierta').length?`(${comandas.filter(c=>c.estado==='abierta').length})`:'';
+    } else if(ultimaActualizacion===0){
       ultimaActualizacion=ts||Date.now();
     }
     setSyncDot(true);
   }catch(e){setSyncDot(false);}
-},30000);
-
-// Iniciar sync al cargar
-window.addEventListener('load',()=>{initSync();});
-if(document.readyState==='complete')initSync();
+},6000);
 
 // ── PRUEBA DE IMPRESORAS ──
 async function testPrint(destino){
@@ -2656,21 +2521,6 @@ function mostrarOpcionesMesa(id){
   const mins=Math.floor((Date.now()-c.id)/60000);
   const tiempo=mins<60?mins+'min':Math.floor(mins/60)+'h'+(mins%60?' '+mins%60+'m':'');
   document.getElementById('mesaOpInfo').textContent=(c.canal?'':c.mesero+' · ')+tiempo+' · $'+c.total.toLocaleString();
-  // Resumen de items activos
-  const activos=c.items.filter(it=>!it.cancelado);
-  const itemsEl=document.getElementById('mesaOpItems');
-  if(activos.length){
-    itemsEl.innerHTML=activos.map(it=>{
-      const nota=it.nota?` <span style="color:#888;font-size:12px;">(${esc(it.nota)})</span>`:'';
-      const cortesia=it.cortesia?` <span style="color:#b06800;font-size:12px;">★</span>`:'';
-      const precio=it.cortesia?'<span style="color:#b06800;">$0</span>':'<span style="color:#555;">$'+(it.p*it.q).toLocaleString()+'</span>';
-      return`<div style="display:flex;justify-content:space-between;gap:8px;"><span>${it.q}× <b>${esc(it.n)}</b>${cortesia}${nota}</span>${precio}</div>`;
-    }).join('')+`<div style="border-top:1px solid #e0e0e0;margin-top:8px;padding-top:8px;font-weight:700;display:flex;justify-content:space-between;"><span>Total</span><span>$${c.total.toLocaleString()}</span></div>`;
-    itemsEl.style.display='';
-  } else {
-    itemsEl.innerHTML='<span style="color:#aaa;">Sin productos</span>';
-    itemsEl.style.display='';
-  }
   document.getElementById('modalMesaOpciones').classList.add('open');
 }
 function opcionEditarMesa(){cerrarModal('modalMesaOpciones');if(_opcionMesaId)editarComanda(_opcionMesaId);}
@@ -4222,11 +4072,6 @@ function guardarMenuAdmin(){
           else if(oldMap[nombre].p!==undefined && oldMap[nombre].p!==p) cambiosInv.push({n:nombre,cat,tipo:'precio',de:oldMap[nombre].p,a:p});
         });
         MENU=categorias;EXTRAS=extras;
-        // Guardar en localStorage para persistencia permanente (respaldo contra pérdida Redis)
-        try{
-          localStorage.setItem('i_menu_cache',JSON.stringify({categorias:MENU,extras:EXTRAS}));
-          localStorage.setItem('i_menu_cache_ts',String(Date.now()));
-        }catch(_){}
         document.getElementById('catTabs').innerHTML='';
         initMenu();
         msg.style.color='#2d7a2d';msg.textContent='✓ Menú guardado y aplicado en todos los dispositivos.';
@@ -4312,11 +4157,6 @@ function guardarMenuDelivery(canal){
         body:JSON.stringify({pin,categorias:MENU,extras:EXTRAS,log86:[]})});
       const d=await r.json();
       if(d.ok){
-        // Guardar en localStorage como respaldo permanente
-        try{
-          localStorage.setItem('i_menu_cache',JSON.stringify({categorias:MENU,extras:EXTRAS}));
-          localStorage.setItem('i_menu_cache_ts',String(Date.now()));
-        }catch(_){}
         msg.style.color='#2d7a2d';
         msg.textContent=`✓ Precios ${meta.label} guardados en todos los dispositivos.`;
         if(currentCanal===canal){const ac=document.querySelector('.cat-btn.active')?.textContent;if(ac)renderPlatillos(ac);}

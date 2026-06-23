@@ -10,3 +10,4 @@ node_modules/
 *\ 2.js
 *\ 2.json
 *\ 2.html
+.env*
