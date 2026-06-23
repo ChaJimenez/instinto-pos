@@ -12,8 +12,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .header-sub{font-size:12px;color:#a8bcdf;margin-top:2px;}
 .back-btn{font-size:12px;color:#a8bcdf;border:1px solid #2a4a7f;background:transparent;border-radius:6px;padding:6px 12px;cursor:pointer;text-decoration:none;display:inline-block;}
 .back-btn:hover{background:#1a3a6e;color:#fff;}
-
-.main{max-width:920px;margin:0 auto;padding:20px 16px;}
+.main{max-width:960px;margin:0 auto;padding:20px 16px;}
 
 /* PIN gate */
 .pin-gate{background:#fff;border-radius:12px;padding:40px 24px;text-align:center;box-shadow:0 1px 4px rgba(0,0,0,.07);max-width:340px;margin:48px auto;}
@@ -35,33 +34,53 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .custom-range input:focus{border-color:#0D2A5E;}
 .btn-apply{padding:7px 16px;background:#0D2A5E;color:#fff;border:none;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;}
 
-/* KPIs */
+/* KPIs — 4 columnas, filas ilimitadas */
 .kpi-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:16px;}
 @media(max-width:600px){.kpi-grid{grid-template-columns:repeat(2,1fr);}}
 .kpi-card{background:#fff;border-radius:12px;padding:16px;box-shadow:0 1px 4px rgba(0,0,0,.07);}
+.kpi-card.accent{background:#0D2A5E;}
+.kpi-card.accent .kpi-val,.kpi-card.accent .kpi-label,.kpi-card.accent .kpi-sub{color:#fff;}
+.kpi-card.accent .kpi-label{color:#a8bcdf;}
+.kpi-card.accent .kpi-sub{color:#7aaddf;}
 .kpi-val{font-size:24px;font-weight:800;color:#0D2A5E;line-height:1;}
 .kpi-label{font-size:11px;color:#888;margin-top:5px;font-weight:600;text-transform:uppercase;letter-spacing:.05em;}
 .kpi-sub{font-size:11px;color:#aaa;margin-top:2px;}
+.kpi-val.green{color:#16a34a;}
+.kpi-val.amber{color:#b06800;}
+.kpi-val.red{color:#dc2626;}
 
 /* Sections */
 .section{background:#fff;border-radius:12px;padding:20px;box-shadow:0 1px 4px rgba(0,0,0,.07);margin-bottom:14px;}
 .section-title{font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#888;margin-bottom:16px;}
+.section-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;}
+.section-header .section-title{margin-bottom:0;}
+.section-badge{font-size:11px;padding:3px 8px;border-radius:8px;background:#f0f4ff;color:#0D2A5E;font-weight:600;}
 
 /* Bar chart */
 .bar-chart{display:flex;flex-direction:column;gap:5px;}
 .bar-row{display:flex;align-items:center;gap:10px;min-height:26px;}
 .bar-label{font-size:12px;color:#555;width:52px;flex-shrink:0;text-align:right;font-variant-numeric:tabular-nums;}
 .bar-label.wide{width:130px;text-align:left;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.bar-label.day{width:38px;text-align:center;font-weight:600;font-size:12px;}
 .bar-track{flex:1;background:#f0f2f5;border-radius:4px;height:20px;overflow:hidden;}
 .bar-fill{height:100%;border-radius:4px;background:#0D2A5E;transition:width .5s cubic-bezier(.4,0,.2,1);}
 .bar-fill.amber{background:#F5A020;}
 .bar-fill.green{background:#16a34a;}
+.bar-fill.purple{background:#7c3aed;}
+.bar-fill.red{background:#dc2626;}
 .bar-val{font-size:12px;color:#555;width:86px;flex-shrink:0;text-align:right;font-variant-numeric:tabular-nums;}
+.bar-val.narrow{width:64px;}
 
 /* Heatmap por hora */
 .heatmap{display:grid;grid-template-columns:repeat(12,1fr);gap:4px;}
 @media(max-width:480px){.heatmap{grid-template-columns:repeat(8,1fr);}}
 .heat-cell{aspect-ratio:1;border-radius:5px;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;}
+
+/* Revenue bar por hora */
+.hora-bars{display:flex;align-items:flex-end;gap:3px;height:80px;margin-top:14px;}
+.hora-bar-wrap{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;}
+.hora-bar-fill{width:100%;border-radius:3px 3px 0 0;background:#0D2A5E;min-height:2px;transition:height .4s;}
+.hora-bar-lbl{font-size:9px;color:#aaa;font-weight:600;}
 
 /* Pago pills */
 .pago-grid{display:flex;gap:10px;flex-wrap:wrap;}
@@ -70,8 +89,19 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .pago-pill-val{font-size:20px;font-weight:800;color:#0D2A5E;}
 .pago-pill-sub{font-size:11px;color:#aaa;margin-top:2px;}
 
+/* Resumen pills (cortesías/descuentos/cancelaciones) */
+.resumen-pills{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:16px;}
+.resumen-pill{flex:1;min-width:140px;background:#f7f9ff;border-radius:10px;padding:12px 14px;}
+.resumen-pill.warn{background:#fffbeb;border:1px solid #fde68a;}
+.resumen-pill.danger{background:#fff1f2;border:1px solid #fecdd3;}
+.resumen-pill-label{font-size:11px;color:#888;font-weight:600;text-transform:uppercase;letter-spacing:.04em;margin-bottom:4px;}
+.resumen-pill-val{font-size:18px;font-weight:800;color:#0D2A5E;}
+.resumen-pill.warn .resumen-pill-val{color:#b06800;}
+.resumen-pill.danger .resumen-pill-val{color:#dc2626;}
+.resumen-pill-sub{font-size:11px;color:#aaa;margin-top:2px;}
+
 /* Tables */
-#tablaProductos,#tablaMesero{overflow-x:auto;-webkit-overflow-scrolling:touch;}
+#tablaProductos,#tablaMesero,#tablaMesa{overflow-x:auto;-webkit-overflow-scrolling:touch;}
 .rpt-table{width:100%;border-collapse:collapse;font-size:13px;}
 .rpt-table th{text-align:left;padding:7px 8px;color:#888;font-weight:600;border-bottom:2px solid #eee;font-size:11px;text-transform:uppercase;letter-spacing:.04em;white-space:nowrap;}
 .rpt-table td{padding:9px 8px;border-bottom:1px solid #f5f5f5;vertical-align:middle;}
@@ -79,8 +109,13 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .rpt-table tr:hover td{background:#fafbff;}
 .rank{font-size:11px;color:#ccc;font-weight:700;width:20px;display:inline-block;}
 .badge{font-size:10px;padding:2px 7px;border-radius:8px;font-weight:600;background:#f0f4ff;color:#0D2A5E;white-space:nowrap;}
+.badge.amber{background:#fff8ed;color:#b06800;}
+.badge.green{background:#dcfce7;color:#16a34a;}
 .mini-bar{display:inline-block;height:5px;background:#0D2A5E;border-radius:3px;vertical-align:middle;margin-left:6px;opacity:.25;}
 .num-right{text-align:right;}
+
+/* Mesa table */
+.mesa-tag{font-size:12px;font-weight:700;background:#f0f4ff;color:#0D2A5E;padding:2px 8px;border-radius:6px;display:inline-block;}
 
 /* Empty / loading */
 .empty{color:#aaa;font-size:13px;text-align:center;padding:32px;}
@@ -103,50 +138,34 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .sin-receta-tags{display:flex;flex-wrap:wrap;gap:6px;}
 .sin-receta-tag{font-size:11px;padding:3px 8px;background:#fef3c7;color:#92400e;border-radius:6px;}
 
+/* Divider */
+.section-divider{height:1px;background:#f0f2f5;margin:14px 0;}
+
 /* ── MOBILE ── */
 @media(max-width:640px){
   .main{padding:12px 10px;}
   .header{padding:12px 14px;}
   .header-title{font-size:15px;}
-
-  /* Period buttons — suficiente para toque */
   .period-bar{gap:5px;}
   .period-btn{padding:9px 12px;font-size:13px;min-height:40px;}
-
-  /* KPI: 2 col en mobile */
   .kpi-grid{grid-template-columns:repeat(2,1fr);gap:8px;}
   .kpi-val{font-size:20px;}
-
-  /* Sections: menos padding */
   .section{padding:14px 12px;}
-
-  /* Bar chart: reducir label wide para que no robe espacio */
   .bar-label.wide{width:100px;}
   .bar-val{width:70px;}
-
-  /* Tables: scroll horizontal — envuelve dinámicamente con JS */
   .rpt-table-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch;margin:-2px;}
-  .rpt-table{min-width:320px;}
-
-  /* Inventario: cobertura más compacta */
+  .rpt-table{min-width:400px;}
   .inv-coverage-pct{font-size:26px;}
-
-  /* Custom range en columna */
   .custom-range{flex-direction:column;align-items:stretch;}
   .custom-range input[type=date]{width:100%;min-height:40px;}
   .btn-apply{min-height:40px;}
-
-  /* Pago pills: wrap ajustado */
   .pago-grid{gap:7px;}
   .pago-pill{min-width:100px;padding:10px 12px;flex:1;}
   .pago-pill-val{font-size:17px;}
-
-  /* Export btn */
   .export-bar{justify-content:stretch;}
   .btn-export{width:100%;text-align:center;}
-
-  /* Back btn más grande */
   .back-btn{padding:8px 14px;font-size:13px;}
+  .hora-bars{height:60px;}
 }
 </style>
 </head>
@@ -197,38 +216,67 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
       <button class="btn-export" onclick="exportarCSV()">↓ Exportar CSV</button>
     </div>
 
+    <!-- KPIs — 2 filas -->
     <div class="kpi-grid" id="kpiGrid"></div>
 
+    <!-- Forma de pago -->
     <div class="section" id="secPago">
       <div class="section-title">Forma de pago</div>
       <div class="pago-grid" id="pagoPills"><div class="loading-spinner">Cargando...</div></div>
     </div>
 
+    <!-- Ventas por día -->
     <div class="section">
       <div class="section-title">Ventas por día</div>
       <div id="chartDia"><div class="loading-spinner">Cargando...</div></div>
     </div>
 
+    <!-- Ventas por hora -->
     <div class="section">
       <div class="section-title">Ventas por hora</div>
       <div id="chartHora"><div class="loading-spinner">Cargando...</div></div>
     </div>
 
+    <!-- Ventas por día de semana -->
+    <div class="section">
+      <div class="section-header">
+        <div class="section-title">Ventas por día de semana</div>
+        <span class="section-badge" id="mejorDiaSemana">—</span>
+      </div>
+      <div id="chartDiaSemana"><div class="loading-spinner">Cargando...</div></div>
+    </div>
+
+    <!-- Top productos -->
     <div class="section">
       <div class="section-title">Top productos</div>
       <div id="tablaProductos"><div class="loading-spinner">Cargando...</div></div>
     </div>
 
+    <!-- Por mesero -->
     <div class="section">
       <div class="section-title">Por mesero</div>
       <div id="tablaMesero"><div class="loading-spinner">Cargando...</div></div>
     </div>
 
+    <!-- Por categoría -->
     <div class="section">
       <div class="section-title">Por categoría</div>
       <div id="chartCategoria"><div class="loading-spinner">Cargando...</div></div>
     </div>
 
+    <!-- Por mesa (locales) -->
+    <div class="section">
+      <div class="section-title">Ventas por mesa</div>
+      <div id="tablaMesa"><div class="loading-spinner">Cargando...</div></div>
+    </div>
+
+    <!-- Cortesías y descuentos -->
+    <div class="section">
+      <div class="section-title">Cortesías y descuentos</div>
+      <div id="secCortesias"><div class="loading-spinner">Cargando...</div></div>
+    </div>
+
+    <!-- Impacto en inventario -->
     <div class="section">
       <div class="section-title">Impacto en inventario</div>
       <div id="tablaInventario"><div class="loading-spinner">Cargando...</div></div>
@@ -244,6 +292,7 @@ const esc = s => { const d = document.createElement('div'); d.textContent = Stri
 const fmtD = iso => { const [y,m,d]=iso.split('-'); return `${d}/${m}`; };
 const fmtDLong = iso => new Date(iso+'T12:00:00').toLocaleDateString('es-MX',{weekday:'short',day:'numeric',month:'short'});
 const fechaHoy = () => new Date().toLocaleDateString('sv-SE',{timeZone:'America/Mexico_City'});
+const pad2 = n => String(n).padStart(2,'0');
 
 // ── PIN ──
 async function validarPin() {
@@ -273,13 +322,12 @@ function initCustomDates() {
 function getPeriodRange(key) {
   const hoy = fechaHoy();
   const [y,m,d] = hoy.split('-').map(Number);
-  const pad = n => String(n).padStart(2,'0');
   switch(key) {
     case 'hoy':    return [hoy, hoy];
     case 'ayer': { const a=new Date(y,m-1,d-1); return [a.toLocaleDateString('sv-SE'), a.toLocaleDateString('sv-SE')]; }
     case '7d':   { const a=new Date(y,m-1,d-6); return [a.toLocaleDateString('sv-SE'), hoy]; }
     case '30d':  { const a=new Date(y,m-1,d-29); return [a.toLocaleDateString('sv-SE'), hoy]; }
-    case 'mes':  return [`${y}-${pad(m)}-01`, hoy];
+    case 'mes':  return [`${y}-${pad2(m)}-01`, hoy];
     case 'mes_ant': {
       const f1=new Date(y,m-2,1), f2=new Date(y,m-1,0);
       return [f1.toLocaleDateString('sv-SE'), f2.toLocaleDateString('sv-SE')];
@@ -307,26 +355,25 @@ function applyCustom() {
 // ── Loading state ──
 function setLoading() {
   const loading = '<div class="loading-spinner">Cargando...</div>';
-  ['pagoPills','chartDia','chartHora','tablaProductos','tablaMesero','chartCategoria','tablaInventario'].forEach(id=>{
+  ['pagoPills','chartDia','chartHora','chartDiaSemana','tablaProductos','tablaMesero','chartCategoria','tablaMesa','secCortesias','tablaInventario'].forEach(id=>{
     document.getElementById(id).innerHTML = loading;
   });
+  document.getElementById('mejorDiaSemana').textContent = '—';
   document.getElementById('kpiGrid').innerHTML = [
-    {l:'Ingresos'},{l:'Cuentas'},{l:'Ticket prom.'},{l:'Mejor día'}
-  ].map(k=>`<div class="kpi-card"><div class="kpi-val">—</div><div class="kpi-label">${k.l}</div></div>`).join('');
+    'Ingresos','Cuentas','Ticket prom.','Mejor día',
+    'Propinas','Cortesías','Descuentos','Hora pico'
+  ].map(l=>`<div class="kpi-card"><div class="kpi-val">—</div><div class="kpi-label">${l}</div></div>`).join('');
 }
 
-// ── Estado global del reporte ──
+// ── Estado global ──
 let reporteActual = null;
 let periodoActual = {};
 
 // ── Cargar ──
 async function cargarReporte(desde, hasta) {
   periodoActual = { desde, hasta };
-  if (desde === hasta) {
-    document.getElementById('headerPeriod').textContent = fmtDLong(desde);
-  } else {
-    document.getElementById('headerPeriod').textContent = `${fmtD(desde)} — ${fmtD(hasta)}`;
-  }
+  document.getElementById('headerPeriod').textContent =
+    desde === hasta ? fmtDLong(desde) : `${fmtD(desde)} — ${fmtD(hasta)}`;
   setLoading();
   try {
     const r = await fetch(`/api/reportes?desde=${desde}&hasta=${hasta}`);
@@ -337,9 +384,12 @@ async function cargarReporte(desde, hasta) {
     renderPago(data.porFormaPago || []);
     renderPorDia(data.porDia || []);
     renderPorHora(data.porHora || []);
+    renderPorDiaSemana(data.porDiaSemana || []);
     renderProductos(data.porProducto || []);
     renderMesero(data.porMesero || []);
     renderCategoria(data.porCategoria || []);
+    renderMesa(data.porMesa || []);
+    renderCortesias(data);
     cargarInventario(desde, hasta);
   } catch(e) {
     document.getElementById('kpiGrid').innerHTML =
@@ -350,45 +400,64 @@ async function cargarReporte(desde, hasta) {
 // ── Export CSV ──
 function exportarCSV() {
   if (!reporteActual) return;
-  const { resumen, porProducto, porCategoria, porDia } = reporteActual;
+  const { resumen, porProducto=[], porCategoria=[], porDia=[], porMesero=[], porMesa=[], porFormaPago=[], porDiaSemana=[], porCortesia=[] } = reporteActual;
   const { desde, hasta } = periodoActual;
-  const totalProd = porProducto.reduce((s, p) => s + p.total, 0) || 1;
-  const totalCat  = porCategoria.reduce((s, c) => s + c.total, 0) || 1;
+  const totalProd = porProducto.reduce((s,p)=>s+p.total,0)||1;
 
   const rows = [];
-  rows.push(['REPORTE INSTINTO', '', `${desde} al ${hasta}`]);
+  rows.push(['REPORTE INSTINTO','',`${desde} al ${hasta}`]);
   rows.push([]);
   rows.push(['RESUMEN']);
   rows.push(['Total ingresos', resumen.total]);
   rows.push(['Cuentas', resumen.ventas]);
   rows.push(['Ticket promedio', resumen.ticketProm]);
+  rows.push(['Propinas', resumen.propinas]);
+  rows.push(['Cortesías', resumen.cortesias]);
+  rows.push(['Descuentos', resumen.descuentos]);
+  rows.push(['Ventas locales', resumen.ventasLocales]);
+  rows.push(['Ventas delivery', resumen.ventasDelivery]);
+  if (resumen.mejorHora) rows.push(['Hora pico', `${pad2(resumen.mejorHora.hora)}:00 (${resumen.mejorHora.ventas} cuentas)`]);
+  if (resumen.cancelaciones?.count) rows.push(['Cancelaciones', `${resumen.cancelaciones.count} ítems · $${resumen.cancelaciones.valor}`]);
   rows.push([]);
-  rows.push(['VENTAS POR PRODUCTO']);
-  rows.push(['#', 'Producto', 'Categoría', 'Unidades', 'Total MXN', '% del Total']);
-  porProducto.forEach((p, i) => {
-    rows.push([i + 1, p.nombre, p.cat || '', p.unidades, p.total,
-      (p.total / totalProd * 100).toFixed(1) + '%']);
-  });
-  rows.push([]);
-  rows.push(['VENTAS POR CATEGORÍA']);
-  rows.push(['Categoría', 'Unidades', 'Total MXN', '% del Total']);
-  porCategoria.forEach(c => {
-    rows.push([c.cat, c.unidades, c.total, (c.total / totalCat * 100).toFixed(1) + '%']);
-  });
+  rows.push(['FORMA DE PAGO']);
+  rows.push(['Forma','Cuentas','Total MXN']);
+  porFormaPago.forEach(p=>rows.push([p.forma,p.cuentas,p.total]));
   rows.push([]);
   rows.push(['VENTAS POR DÍA']);
-  rows.push(['Fecha', 'Cuentas', 'Total MXN']);
-  porDia.forEach(d => { rows.push([d.fecha, d.ventas, d.total]); });
+  rows.push(['Fecha','Cuentas','Total MXN']);
+  porDia.forEach(d=>rows.push([d.fecha,d.ventas,d.total]));
+  rows.push([]);
+  rows.push(['VENTAS POR DÍA DE SEMANA']);
+  rows.push(['Día','Cuentas','Total MXN']);
+  porDiaSemana.forEach(d=>rows.push([d.dia,d.ventas,d.total]));
+  rows.push([]);
+  rows.push(['VENTAS POR PRODUCTO']);
+  rows.push(['#','Producto','Categoría','Unidades','Total MXN','% del Total']);
+  porProducto.forEach((p,i)=>rows.push([i+1,p.nombre,p.cat||'',p.unidades,p.total,(p.total/totalProd*100).toFixed(1)+'%']));
+  rows.push([]);
+  rows.push(['VENTAS POR CATEGORÍA']);
+  rows.push(['Categoría','Unidades','Total MXN']);
+  porCategoria.forEach(c=>rows.push([c.cat,c.unidades,c.total]));
+  rows.push([]);
+  rows.push(['VENTAS POR MESERO']);
+  rows.push(['Mesero','Cuentas','Total MXN','Ticket prom.','Cortesías','Propinas']);
+  porMesero.forEach(m=>rows.push([m.nombre,m.cuentas,m.total,m.ticketProm,Math.round(m.cortesias||0),Math.round(m.propinas||0)]));
+  rows.push([]);
+  rows.push(['VENTAS POR MESA']);
+  rows.push(['Mesa','Cuentas','Total MXN','Ticket prom.']);
+  porMesa.forEach(m=>rows.push([m.mesa,m.cuentas,m.total,m.ticketProm]));
+  if (porCortesia.length) {
+    rows.push([]);
+    rows.push(['CORTESÍAS POR PRODUCTO']);
+    rows.push(['Producto','Veces','Valor MXN']);
+    porCortesia.forEach(c=>rows.push([c.nombre,c.veces,c.valor]));
+  }
 
-  const csv = rows.map(r =>
-    r.map(v => `"${String(v === undefined ? '' : v).replace(/"/g, '""')}"`).join(',')
-  ).join('\n');
-  const blob = new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8;' });
-  const url  = URL.createObjectURL(blob);
-  const a    = document.createElement('a');
-  a.href     = url;
-  a.download = `instinto-reporte-${desde}-${hasta}.csv`;
-  a.click();
+  const csv = rows.map(r=>r.map(v=>`"${String(v===undefined?'':v).replace(/"/g,'""')}"`).join(',')).join('\n');
+  const blob = new Blob(['﻿'+csv],{type:'text/csv;charset=utf-8;'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = `instinto-reporte-${desde}-${hasta}.csv`; a.click();
   URL.revokeObjectURL(url);
 }
 
@@ -399,84 +468,74 @@ async function cargarInventario(desde, hasta) {
     const data = await r.json();
     renderInventario(data);
   } catch(e) {
-    document.getElementById('tablaInventario').innerHTML =
-      '<div class="empty">Error al cargar impacto en inventario</div>';
+    document.getElementById('tablaInventario').innerHTML='<div class="empty">Error al cargar impacto en inventario</div>';
   }
 }
 
-function renderInventario({ consumoPorInsumo = [], sinReceta = [], pctCobertura = 0, conReceta = 0, totalPlatillos = 0 }) {
+function renderInventario({ consumoPorInsumo=[], sinReceta=[], pctCobertura=0, conReceta=0, totalPlatillos=0 }) {
   const { desde, hasta } = periodoActual;
   const diasPeriodo = (desde && hasta)
-    ? Math.max(1, Math.round((new Date(hasta + 'T12:00:00') - new Date(desde + 'T12:00:00')) / 86400000) + 1)
-    : 1;
+    ? Math.max(1, Math.round((new Date(hasta+'T12:00:00')-new Date(desde+'T12:00:00'))/86400000)+1) : 1;
 
-  const coverageBadge = pctCobertura === 100
+  const coverageBadge = pctCobertura===100
     ? `<span class="inv-badge-ok">Cobertura completa</span>`
-    : pctCobertura >= 70
+    : pctCobertura>=70
     ? `<span class="inv-badge-warn">${conReceta}/${totalPlatillos} platillos con receta</span>`
     : `<span class="inv-badge-crit">${conReceta}/${totalPlatillos} platillos con receta</span>`;
 
-  let html = `
-    <div class="inv-coverage">
-      <div class="inv-coverage-pct">${pctCobertura}%</div>
-      <div>
-        <div class="inv-coverage-label">de tus platillos tienen receta configurada</div>
-        <div>${coverageBadge}</div>
-      </div>
-    </div>`;
+  let html = `<div class="inv-coverage">
+    <div class="inv-coverage-pct">${pctCobertura}%</div>
+    <div><div class="inv-coverage-label">de tus platillos tienen receta configurada</div><div>${coverageBadge}</div></div>
+  </div>`;
 
   if (!consumoPorInsumo.length) {
     html += '<div class="empty">Sin recetas configuradas — agrega recetas en el sistema de inventario para ver el impacto.</div>';
   } else {
-    html += `<table class="rpt-table">
-      <thead><tr>
-        <th>Ingrediente</th>
-        <th>Unidad</th>
-        <th class="num-right">Consumido</th>
-        <th class="num-right">Stock actual</th>
-        <th class="num-right">Días restantes</th>
-      </tr></thead>
-      <tbody>` +
-      consumoPorInsumo.map(ins => {
-        const consumoDia   = ins.consumido / diasPeriodo;
-        const diasRest     = (consumoDia > 0 && ins.stockActual > 0)
-          ? Math.round(ins.stockActual / consumoDia) : null;
-        let diasLabel = '—', diasClass = '';
-        if (diasRest !== null) {
-          diasLabel = diasRest + 'd';
-          diasClass = diasRest <= 2 ? 'inv-badge-crit' : diasRest <= 7 ? 'inv-badge-warn' : 'inv-badge-ok';
-        }
-        return `<tr>
-          <td style="font-weight:500;">${esc(ins.nombre)}</td>
-          <td style="color:#888;">${esc(ins.unidad)}</td>
-          <td class="num-right">${ins.consumido}</td>
-          <td class="num-right">${ins.stockActual}</td>
-          <td class="num-right">${diasClass ? `<span class="${diasClass}">${diasLabel}</span>` : diasLabel}</td>
-        </tr>`;
-      }).join('') + '</tbody></table>';
+    html += `<table class="rpt-table"><thead><tr>
+      <th>Ingrediente</th><th>Unidad</th>
+      <th class="num-right">Consumido</th><th class="num-right">Stock actual</th><th class="num-right">Días restantes</th>
+    </tr></thead><tbody>` +
+    consumoPorInsumo.map(ins => {
+      const consumoDia = ins.consumido / diasPeriodo;
+      const diasRest = (consumoDia>0&&ins.stockActual>0) ? Math.round(ins.stockActual/consumoDia) : null;
+      let diasLabel='—', diasClass='';
+      if (diasRest!==null) { diasLabel=diasRest+'d'; diasClass=diasRest<=2?'inv-badge-crit':diasRest<=7?'inv-badge-warn':'inv-badge-ok'; }
+      return `<tr>
+        <td style="font-weight:500;">${esc(ins.nombre)}</td>
+        <td style="color:#888;">${esc(ins.unidad)}</td>
+        <td class="num-right">${ins.consumido}</td>
+        <td class="num-right">${ins.stockActual}</td>
+        <td class="num-right">${diasClass?`<span class="${diasClass}">${diasLabel}</span>`:diasLabel}</td>
+      </tr>`;
+    }).join('') + '</tbody></table>';
   }
-
   if (sinReceta.length) {
     html += `<div class="sin-receta-list">
       <div class="sin-receta-title">Sin receta — no descuentan inventario</div>
-      <div class="sin-receta-tags">${sinReceta.map(n => `<span class="sin-receta-tag">${esc(n)}</span>`).join('')}</div>
+      <div class="sin-receta-tags">${sinReceta.map(n=>`<span class="sin-receta-tag">${esc(n)}</span>`).join('')}</div>
     </div>`;
   }
-
   document.getElementById('tablaInventario').innerHTML = html;
 }
 
-// ── KPIs ──
-function renderKpis({resumen, porDia}) {
-  const mejorDia = porDia && porDia.length ? porDia.reduce((a,b) => b.total>a.total?b:a) : null;
+// ── KPIs (2 filas) ──
+function renderKpis({ resumen, porDia }) {
+  const mejorDia = porDia?.length ? porDia.reduce((a,b)=>b.total>a.total?b:a) : null;
+  const mh = resumen.mejorHora;
+  const propinas  = resumen.propinas  || 0;
+  const cortesias = resumen.cortesias || 0;
+  const desctos   = resumen.descuentos || 0;
+
   document.getElementById('kpiGrid').innerHTML = `
     <div class="kpi-card">
       <div class="kpi-val">${fmt$(resumen.total)}</div>
       <div class="kpi-label">Ingresos</div>
+      ${resumen.ventasDelivery ? `<div class="kpi-sub">Local + ${resumen.ventasDelivery} delivery</div>` : ''}
     </div>
     <div class="kpi-card">
       <div class="kpi-val">${resumen.ventas}</div>
       <div class="kpi-label">Cuentas</div>
+      ${resumen.ventasLocales!==undefined ? `<div class="kpi-sub">${resumen.ventasLocales} locales · ${resumen.ventasDelivery} delivery</div>` : ''}
     </div>
     <div class="kpi-card">
       <div class="kpi-val">${fmt$(resumen.ticketProm)}</div>
@@ -486,17 +545,33 @@ function renderKpis({resumen, porDia}) {
       <div class="kpi-val">${mejorDia ? fmt$(mejorDia.total) : '—'}</div>
       <div class="kpi-label">Mejor día</div>
       <div class="kpi-sub">${mejorDia ? fmtDLong(mejorDia.fecha) : ''}</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-val green">${fmt$(propinas)}</div>
+      <div class="kpi-label">Propinas</div>
+      <div class="kpi-sub">${resumen.ventas ? fmt$(Math.round(propinas/resumen.ventas)) + ' prom.' : ''}</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-val amber">${fmt$(cortesias)}</div>
+      <div class="kpi-label">Cortesías</div>
+      <div class="kpi-sub">${resumen.total ? (cortesias/(resumen.total+cortesias)*100).toFixed(1)+'% del bruto' : ''}</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-val${desctos > 0 ? ' amber' : ''}">${fmt$(desctos)}</div>
+      <div class="kpi-label">Descuentos</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-val">${mh ? pad2(mh.hora)+':00' : '—'}</div>
+      <div class="kpi-label">Hora pico</div>
+      <div class="kpi-sub">${mh ? mh.ventas + ' cuentas · ' + fmt$(mh.total) : ''}</div>
     </div>`;
 }
 
 // ── Forma de pago ──
 function renderPago(porFormaPago) {
-  if (!porFormaPago.length) {
-    document.getElementById('pagoPills').innerHTML = '<div class="empty">Sin ventas en este período</div>';
-    return;
-  }
-  const total = porFormaPago.reduce((s,p) => s+p.total, 0);
-  document.getElementById('pagoPills').innerHTML = porFormaPago.map(p => `
+  if (!porFormaPago.length) { document.getElementById('pagoPills').innerHTML='<div class="empty">Sin ventas en este período</div>'; return; }
+  const total = porFormaPago.reduce((s,p)=>s+p.total,0);
+  document.getElementById('pagoPills').innerHTML = porFormaPago.map(p=>`
     <div class="pago-pill">
       <div class="pago-pill-forma">${esc(p.forma)}</div>
       <div class="pago-pill-val">${fmt$(p.total)}</div>
@@ -506,13 +581,12 @@ function renderPago(porFormaPago) {
 
 // ── Por día ──
 function renderPorDia(porDia) {
-  if (!porDia.length) { document.getElementById('chartDia').innerHTML = '<div class="empty">Sin datos</div>'; return; }
-  const max = Math.max(...porDia.map(d=>d.total), 1);
-  // Mostrar max 60 días — si hay más, agrupar por semana sería complejo, mostramos los últimos 60
+  if (!porDia.length) { document.getElementById('chartDia').innerHTML='<div class="empty">Sin datos</div>'; return; }
+  const max = Math.max(...porDia.map(d=>d.total),1);
   const dias = porDia.slice(-60);
   document.getElementById('chartDia').innerHTML = `<div class="bar-chart">` +
-    dias.map(d => {
-      const pct = d.total/max*100;
+    dias.map(d=>{
+      const pct=d.total/max*100;
       return `<div class="bar-row">
         <div class="bar-label" title="${fmtDLong(d.fecha)}">${fmtD(d.fecha)}</div>
         <div class="bar-track"><div class="bar-fill" style="width:${pct}%"></div></div>
@@ -521,91 +595,200 @@ function renderPorDia(porDia) {
     }).join('') + '</div>';
 }
 
-// ── Por hora ──
+// ── Por hora (heatmap + barras de ingreso) ──
 function renderPorHora(porHora) {
-  const max = Math.max(...porHora.map(h=>h.ventas), 1);
-  const HORAS = [6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,0,1,2,3,4,5]; // ordenar desde 6am
-  const ordered = HORAS.map(h => porHora[h] || {hora:h,ventas:0,total:0});
-  const cells = ordered.map(h => {
-    const intensity = h.ventas/max;
-    const bg = h.ventas === 0 ? '#f0f2f5'
-      : `rgba(13,42,94,${(0.12 + intensity*0.88).toFixed(2)})`;
-    const color = intensity > 0.45 ? '#fff' : '#555';
-    const label = h.hora < 10 ? '0'+h.hora : h.hora;
+  const maxV = Math.max(...porHora.map(h=>h.ventas),1);
+  const maxT = Math.max(...porHora.map(h=>h.total),1);
+  const HORAS = [6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,0,1,2,3,4,5];
+  const ordered = HORAS.map(h=>porHora[h]||{hora:h,ventas:0,total:0});
+
+  // Heatmap
+  const cells = ordered.map(h=>{
+    const intensity=h.ventas/maxV;
+    const bg=h.ventas===0?'#f0f2f5':`rgba(13,42,94,${(0.12+intensity*0.88).toFixed(2)})`;
+    const color=intensity>0.45?'#fff':'#555';
+    const label=pad2(h.hora);
     return `<div class="heat-cell" style="background:${bg};color:${color};"
       title="${h.hora}:00 — ${h.ventas} ctas · ${fmt$(h.total)}">${label}</div>`;
   });
+
+  // Revenue bars
+  const revBars = ordered.map(h=>{
+    const pct = h.total/maxT*100;
+    const height = Math.max(2, Math.round(pct*0.8));
+    return `<div class="hora-bar-wrap" title="${pad2(h.hora)}:00 · ${fmt$(h.total)}">
+      <div class="hora-bar-fill" style="height:${height}px;opacity:${0.3+h.total/maxT*0.7};"></div>
+      <div class="hora-bar-lbl">${pad2(h.hora)}</div>
+    </div>`;
+  });
+
   document.getElementById('chartHora').innerHTML =
     `<div class="heatmap">${cells.join('')}</div>
-     <div style="margin-top:10px;font-size:11px;color:#bbb;">Horas 06:00 → 05:59 · Oscuro = más ventas</div>`;
+     <div style="margin-top:6px;font-size:11px;color:#bbb;margin-bottom:10px;">Densidad de cuentas · Oscuro = más cuentas</div>
+     <div class="section-divider"></div>
+     <div style="margin-top:10px;font-size:11px;font-weight:600;color:#888;text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px;">Ingresos por hora</div>
+     <div class="hora-bars">${revBars.join('')}</div>`;
+}
+
+// ── Por día de semana ──
+function renderPorDiaSemana(porDiaSemana) {
+  const activos = porDiaSemana.filter(d=>d.ventas>0);
+  if (!activos.length) { document.getElementById('chartDiaSemana').innerHTML='<div class="empty">Sin datos</div>'; return; }
+  const max = Math.max(...porDiaSemana.map(d=>d.total),1);
+  const mejor = porDiaSemana.reduce((a,b)=>b.total>a.total?b:a,{dia:'—',ventas:0,total:0});
+  document.getElementById('mejorDiaSemana').textContent = mejor.ventas > 0 ? `Mejor: ${mejor.dia}` : '—';
+
+  document.getElementById('chartDiaSemana').innerHTML = `<div class="bar-chart">` +
+    porDiaSemana.map(d=>{
+      const pct=d.total/max*100;
+      const isMejor=d.total===mejor.total&&d.ventas>0;
+      return `<div class="bar-row">
+        <div class="bar-label day" style="${isMejor?'color:#0D2A5E;':'color:#999;'}">${esc(d.dia)}</div>
+        <div class="bar-track"><div class="bar-fill${isMejor?'':' amber'}" style="width:${pct}%;opacity:${d.ventas>0?1:0.2};"></div></div>
+        <div class="bar-val">${d.ventas>0?fmt$(d.total):'—'} <span style="color:#ccc;font-size:11px;">${d.ventas>0?d.ventas+'↗':''}</span></div>
+      </div>`;
+    }).join('') + '</div>';
 }
 
 // ── Top productos ──
 function renderProductos(porProducto) {
-  if (!porProducto.length) { document.getElementById('tablaProductos').innerHTML = '<div class="empty">Sin datos</div>'; return; }
-  const maxT = porProducto[0].total || 1;
+  if (!porProducto.length) { document.getElementById('tablaProductos').innerHTML='<div class="empty">Sin datos</div>'; return; }
+  const totalProd = porProducto.reduce((s,p)=>s+p.total,0)||1;
+  const maxT = porProducto[0].total||1;
   document.getElementById('tablaProductos').innerHTML = `
-    <table class="rpt-table">
-      <thead><tr>
-        <th>#</th><th>Producto</th><th>Categoría</th>
-        <th class="num-right">Uds.</th><th class="num-right">Total</th>
-      </tr></thead>
-      <tbody>` +
-    porProducto.map((p,i) => {
-      const pct = Math.round(p.total/maxT*80);
+    <table class="rpt-table"><thead><tr>
+      <th>#</th><th>Producto</th><th>Categoría</th>
+      <th class="num-right">Uds.</th><th class="num-right">Total</th><th class="num-right">% venta</th>
+    </tr></thead><tbody>` +
+    porProducto.map((p,i)=>{
+      const pct=Math.round(p.total/maxT*80);
       return `<tr>
         <td><span class="rank">${i+1}</span></td>
         <td style="font-weight:500;">${esc(p.nombre)}<span class="mini-bar" style="width:${pct}px;"></span></td>
         <td><span class="badge">${esc(p.cat||'—')}</span></td>
         <td class="num-right" style="color:#555;">${p.unidades}</td>
         <td class="num-right" style="font-weight:700;color:#0D2A5E;">${fmt$(p.total)}</td>
+        <td class="num-right" style="color:#aaa;font-size:12px;">${(p.total/totalProd*100).toFixed(1)}%</td>
       </tr>`;
     }).join('') + '</tbody></table>';
 }
 
-// ── Por mesero ──
+// ── Por mesero (con cortesías y propinas) ──
 function renderMesero(porMesero) {
-  if (!porMesero.length) { document.getElementById('tablaMesero').innerHTML = '<div class="empty">Sin datos</div>'; return; }
-  const maxT = porMesero[0].total || 1;
+  if (!porMesero.length) { document.getElementById('tablaMesero').innerHTML='<div class="empty">Sin datos</div>'; return; }
+  const maxT=porMesero[0].total||1;
   document.getElementById('tablaMesero').innerHTML =
     `<div class="bar-chart" style="margin-bottom:18px;">` +
-    porMesero.map(m => {
-      const pct = m.total/maxT*100;
+    porMesero.map(m=>{
+      const pct=m.total/maxT*100;
       return `<div class="bar-row">
         <div class="bar-label wide">${esc(m.nombre)}</div>
         <div class="bar-track"><div class="bar-fill amber" style="width:${pct}%"></div></div>
         <div class="bar-val">${fmt$(m.total)}</div>
       </div>`;
     }).join('') + '</div>' +
-    `<table class="rpt-table">
+    `<div style="overflow-x:auto;"><table class="rpt-table">
       <thead><tr>
         <th>Mesero</th><th class="num-right">Cuentas</th>
         <th class="num-right">Total</th><th class="num-right">Ticket prom.</th>
-      </tr></thead>
-      <tbody>` +
-    porMesero.map(m => `<tr>
+        <th class="num-right">Cortesías</th><th class="num-right">Propinas</th>
+      </tr></thead><tbody>` +
+    porMesero.map(m=>`<tr>
       <td style="font-weight:500;">${esc(m.nombre)}</td>
       <td class="num-right">${m.cuentas}</td>
       <td class="num-right" style="font-weight:700;color:#0D2A5E;">${fmt$(m.total)}</td>
       <td class="num-right" style="color:#555;">${fmt$(m.ticketProm)}</td>
-    </tr>`).join('') + '</tbody></table>';
+      <td class="num-right" style="color:${(m.cortesias||0)>0?'#b06800':'#ccc'};">${(m.cortesias||0)>0?fmt$(m.cortesias):'—'}</td>
+      <td class="num-right" style="color:${(m.propinas||0)>0?'#16a34a':'#ccc'};">${(m.propinas||0)>0?fmt$(m.propinas):'—'}</td>
+    </tr>`).join('') + '</tbody></table></div>';
 }
 
 // ── Por categoría ──
 function renderCategoria(porCategoria) {
-  if (!porCategoria.length) { document.getElementById('chartCategoria').innerHTML = '<div class="empty">Sin datos</div>'; return; }
-  const maxT = porCategoria[0].total || 1;
-  const totalCat = porCategoria.reduce((s,c)=>s+c.total,0) || 1;
+  if (!porCategoria.length) { document.getElementById('chartCategoria').innerHTML='<div class="empty">Sin datos</div>'; return; }
+  const maxT=porCategoria[0].total||1;
+  const totalCat=porCategoria.reduce((s,c)=>s+c.total,0)||1;
   document.getElementById('chartCategoria').innerHTML = `<div class="bar-chart">` +
-    porCategoria.map(c => {
-      const pct = c.total/maxT*100;
-      const pctT = Math.round(c.total/totalCat*100);
+    porCategoria.map(c=>{
+      const pct=c.total/maxT*100;
+      const pctT=Math.round(c.total/totalCat*100);
       return `<div class="bar-row">
         <div class="bar-label wide">${esc(c.cat)}</div>
         <div class="bar-track"><div class="bar-fill green" style="width:${pct}%"></div></div>
         <div class="bar-val">${fmt$(c.total)} <span style="color:#aaa;font-size:11px;">${pctT}%</span></div>
       </div>`;
     }).join('') + '</div>';
+}
+
+// ── Por mesa ──
+function renderMesa(porMesa) {
+  if (!porMesa.length) {
+    document.getElementById('tablaMesa').innerHTML='<div class="empty">Sin ventas de mesas locales en este período</div>';
+    return;
+  }
+  const maxT=porMesa[0].total||1;
+  document.getElementById('tablaMesa').innerHTML =
+    `<div class="bar-chart" style="margin-bottom:18px;">` +
+    porMesa.map(m=>{
+      const pct=m.total/maxT*100;
+      return `<div class="bar-row">
+        <div class="bar-label wide">${esc(m.mesa)}</div>
+        <div class="bar-track"><div class="bar-fill purple" style="width:${pct}%"></div></div>
+        <div class="bar-val">${fmt$(m.total)}</div>
+      </div>`;
+    }).join('') + '</div>' +
+    `<div style="overflow-x:auto;"><table class="rpt-table">
+      <thead><tr>
+        <th>Mesa</th><th class="num-right">Cuentas</th>
+        <th class="num-right">Total</th><th class="num-right">Ticket prom.</th>
+      </tr></thead><tbody>` +
+    porMesa.map(m=>`<tr>
+      <td><span class="mesa-tag">${esc(m.mesa)}</span></td>
+      <td class="num-right">${m.cuentas}</td>
+      <td class="num-right" style="font-weight:700;color:#0D2A5E;">${fmt$(m.total)}</td>
+      <td class="num-right" style="color:#555;">${fmt$(m.ticketProm)}</td>
+    </tr>`).join('') + '</tbody></table></div>';
+}
+
+// ── Cortesías y descuentos ──
+function renderCortesias({ resumen, porCortesia=[] }) {
+  const corts = resumen.cortesias || 0;
+  const descs = resumen.descuentos || 0;
+  const canc  = resumen.cancelaciones || { count: 0, valor: 0 };
+
+  let html = `<div class="resumen-pills">
+    <div class="resumen-pill warn">
+      <div class="resumen-pill-label">Cortesías</div>
+      <div class="resumen-pill-val">${fmt$(corts)}</div>
+      <div class="resumen-pill-sub">${resumen.ventas ? (corts/(resumen.total+(corts||1))*100).toFixed(1)+'% del bruto' : ''}</div>
+    </div>
+    <div class="resumen-pill${descs>0?' warn':''}">
+      <div class="resumen-pill-label">Descuentos</div>
+      <div class="resumen-pill-val">${fmt$(descs)}</div>
+    </div>
+    <div class="resumen-pill${canc.count>0?' danger':''}">
+      <div class="resumen-pill-label">Cancelaciones</div>
+      <div class="resumen-pill-val">${canc.count||0} ítems</div>
+      <div class="resumen-pill-sub">${canc.valor>0?fmt$(canc.valor)+' sin cobrar':''}</div>
+    </div>
+  </div>`;
+
+  if (porCortesia.length) {
+    html += `<div style="margin-top:4px;font-size:11px;font-weight:600;color:#888;text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px;">Productos dados en cortesía</div>
+    <div style="overflow-x:auto;"><table class="rpt-table">
+      <thead><tr>
+        <th>Platillo</th><th class="num-right">Veces</th><th class="num-right">Valor</th>
+      </tr></thead><tbody>` +
+    porCortesia.map(c=>`<tr>
+      <td style="font-weight:500;">${esc(c.nombre)}</td>
+      <td class="num-right">${c.veces}</td>
+      <td class="num-right" style="color:#b06800;font-weight:700;">${fmt$(c.valor)}</td>
+    </tr>`).join('') + '</tbody></table></div>';
+  } else if (corts === 0 && descs === 0 && canc.count === 0) {
+    html += '<div class="empty" style="padding:16px;">Sin cortesías ni descuentos en este período</div>';
+  }
+
+  document.getElementById('secCortesias').innerHTML = html;
 }
 
 // ── Init ──

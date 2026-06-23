@@ -740,12 +740,10 @@ app.get('/api/reportes', async (req, res) => {
       return (!desde || f >= desde) && (!hasta || f <= hasta);
     });
 
-    const totalDinero = filtradas.reduce((s, v) => s + (v.total || 0), 0);
-    const resumen = {
-      ventas: filtradas.length,
-      total: totalDinero,
-      ticketProm: filtradas.length ? Math.round(totalDinero / filtradas.length) : 0,
-    };
+    const totalDinero   = filtradas.reduce((s, v) => s + (v.total       || 0), 0);
+    const totalPropinas = filtradas.reduce((s, v) => s + (v.propina     || 0), 0);
+    const totalCorts    = filtradas.reduce((s, v) => s + (v.cortesias   || 0), 0);
+    const totalDesc     = filtradas.reduce((s, v) => s + (v.descuento?.valor || 0), 0);
 
     // Por día
     const diaMap = {};
@@ -757,66 +755,142 @@ app.get('/api/reportes', async (req, res) => {
     });
     const porDia = Object.values(diaMap).sort((a, b) => a.fecha.localeCompare(b.fecha));
 
-    // Por hora (Mexico City)
+    // Por hora (Mexico City) — usa id numérico; fallback al campo v.hora "HH:MM"
     const horaMap = {};
     filtradas.forEach(v => {
       try {
-        const hora = parseInt(new Intl.DateTimeFormat('en-US', { hour: 'numeric', hourCycle: 'h23', timeZone: 'America/Mexico_City' }).format(new Date(v.id)), 10);
-        if (!horaMap[hora]) horaMap[hora] = { hora, ventas: 0, total: 0 };
-        horaMap[hora].ventas++;
-        horaMap[hora].total += v.total || 0;
+        let hora;
+        const idNum = Number(v.id);
+        if (!isNaN(idNum) && idNum > 1e12) {
+          hora = parseInt(new Intl.DateTimeFormat('en-US', { hour: 'numeric', hourCycle: 'h23', timeZone: 'America/Mexico_City' }).format(new Date(idNum)), 10);
+        } else if (v.hora) {
+          hora = parseInt(String(v.hora).split(':')[0], 10);
+        }
+        if (hora !== undefined && !isNaN(hora)) {
+          if (!horaMap[hora]) horaMap[hora] = { hora, ventas: 0, total: 0 };
+          horaMap[hora].ventas++;
+          horaMap[hora].total += v.total || 0;
+        }
       } catch(e) {}
     });
     const porHora = Array.from({ length: 24 }, (_, i) => horaMap[i] || { hora: i, ventas: 0, total: 0 });
+    const mejorHoraObj = porHora.reduce((a, b) => b.ventas > a.ventas ? b : a, { hora: -1, ventas: 0, total: 0 });
 
-    // Por mesero
+    // Por día de semana (0=Dom … 6=Sáb) — agrega todos los días del período
+    const DIAS_NOM = ['Dom','Lun','Mar','Mié','Jue','Vie','Sáb'];
+    const semanaMap = {};
+    filtradas.forEach(v => {
+      const f = normFecha(v);
+      const dow = new Date(f + 'T12:00:00').getDay();
+      if (!semanaMap[dow]) semanaMap[dow] = { dia: DIAS_NOM[dow], idx: dow, ventas: 0, total: 0 };
+      semanaMap[dow].ventas++;
+      semanaMap[dow].total += v.total || 0;
+    });
+    const porDiaSemana = Array.from({ length: 7 }, (_, i) =>
+      semanaMap[i] || { dia: DIAS_NOM[i], idx: i, ventas: 0, total: 0 }
+    );
+
+    // Por mesero (con cortesías y propinas)
     const meseroMap = {};
     filtradas.forEach(v => {
       const m = v.mesero || 'Sin asignar';
-      if (!meseroMap[m]) meseroMap[m] = { nombre: m, cuentas: 0, total: 0 };
+      if (!meseroMap[m]) meseroMap[m] = { nombre: m, cuentas: 0, total: 0, cortesias: 0, propinas: 0 };
       meseroMap[m].cuentas++;
-      meseroMap[m].total += v.total || 0;
+      meseroMap[m].total     += v.total       || 0;
+      meseroMap[m].cortesias += v.cortesias   || 0;
+      meseroMap[m].propinas  += v.propina     || 0;
     });
     const porMesero = Object.values(meseroMap)
       .map(m => ({ ...m, ticketProm: Math.round(m.total / m.cuentas) }))
       .sort((a, b) => b.total - a.total);
 
-    // Por producto (platillos principales — sin + prefix)
+    // Por mesa (mesas locales — excluye delivery)
+    const DELIVERY_PFX = ['Uber', 'Rappi', 'DiDi'];
+    const mesaMap = {};
+    filtradas
+      .filter(v => !v.canal && !DELIVERY_PFX.some(p => String(v.mesa || '').startsWith(p)))
+      .forEach(v => {
+        const mesa = v.mesa || '(sin mesa)';
+        if (!mesaMap[mesa]) mesaMap[mesa] = { mesa, cuentas: 0, total: 0 };
+        mesaMap[mesa].cuentas++;
+        mesaMap[mesa].total += v.total || 0;
+      });
+    const porMesa = Object.values(mesaMap)
+      .map(m => ({ ...m, ticketProm: Math.round(m.total / m.cuentas) }))
+      .sort((a, b) => b.total - a.total)
+      .slice(0, 20);
+
+    // Por producto (platillos cobrados — sin cortesías, sin cancelados)
     const prodMap = {};
     filtradas.forEach(v => {
-      (v.items || []).filter(it => !it.cancelado && !it.n.startsWith('+')).forEach(it => {
+      (v.items || []).filter(it => !it.cancelado && !it.cortesia && !it.n.startsWith('+')).forEach(it => {
         const k = it.n;
         if (!prodMap[k]) prodMap[k] = { nombre: k, cat: it.cat || '', unidades: 0, total: 0 };
         prodMap[k].unidades += it.q || 1;
-        prodMap[k].total += (it.p || 0) * (it.q || 1);
+        prodMap[k].total    += (it.p || 0) * (it.q || 1);
       });
     });
     const porProducto = Object.values(prodMap).sort((a, b) => b.total - a.total);
 
-    // Por categoría
+    // Por categoría (sin cortesías ni cancelados)
     const catMap = {};
     filtradas.forEach(v => {
-      (v.items || []).filter(it => !it.cancelado && !it.n.startsWith('+')).forEach(it => {
+      (v.items || []).filter(it => !it.cancelado && !it.cortesia && !it.n.startsWith('+')).forEach(it => {
         const c = it.cat || 'Sin categoría';
         if (!catMap[c]) catMap[c] = { cat: c, total: 0, unidades: 0 };
-        catMap[c].total += (it.p || 0) * (it.q || 1);
+        catMap[c].total    += (it.p || 0) * (it.q || 1);
         catMap[c].unidades += it.q || 1;
       });
     });
     const porCategoria = Object.values(catMap).sort((a, b) => b.total - a.total);
 
-    // Por forma de pago
+    // Por forma de pago (normaliza "Mixto…" y lee v.pago como campo principal)
     const pagoMap = {};
     filtradas.forEach(v => {
-      const raw = v.formaPago || 'Efectivo';
-      const label = raw.charAt(0).toUpperCase() + raw.slice(1).toLowerCase();
+      const raw = v.pago || v.formaPago || 'Efectivo';
+      const label = raw.startsWith('Mixto') ? 'Mixto'
+        : raw.charAt(0).toUpperCase() + raw.slice(1).toLowerCase();
       if (!pagoMap[label]) pagoMap[label] = { forma: label, cuentas: 0, total: 0 };
       pagoMap[label].cuentas++;
       pagoMap[label].total += v.total || 0;
     });
     const porFormaPago = Object.values(pagoMap).sort((a, b) => b.total - a.total);
 
-    res.json({ resumen, porDia, porHora, porMesero, porProducto, porCategoria, porFormaPago });
+    // Top platillos dados en cortesía
+    const cortesiaMap = {};
+    filtradas.forEach(v => {
+      (v.items || []).filter(it => it.cortesia && !it.cancelado).forEach(it => {
+        const k = it.n;
+        if (!cortesiaMap[k]) cortesiaMap[k] = { nombre: k, veces: 0, valor: 0 };
+        cortesiaMap[k].veces += it.q || 1;
+        cortesiaMap[k].valor += (it.p || 0) * (it.q || 1);
+      });
+    });
+    const porCortesia = Object.values(cortesiaMap).sort((a, b) => b.valor - a.valor);
+
+    // Resumen de cancelaciones
+    let cancCount = 0, cancValor = 0;
+    filtradas.forEach(v => {
+      (v.items || []).filter(it => it.cancelado).forEach(it => {
+        cancCount += it.q  || 1;
+        cancValor += (it.p || 0) * (it.q || 1);
+      });
+    });
+
+    const resumen = {
+      ventas:         filtradas.length,
+      total:          totalDinero,
+      ticketProm:     filtradas.length ? Math.round(totalDinero / filtradas.length) : 0,
+      propinas:       Math.round(totalPropinas),
+      cortesias:      Math.round(totalCorts),
+      descuentos:     Math.round(totalDesc),
+      ventasLocales:  filtradas.filter(v => !v.canal).length,
+      ventasDelivery: filtradas.filter(v =>  v.canal).length,
+      mejorHora:      mejorHoraObj.ventas > 0 ? mejorHoraObj : null,
+      cancelaciones:  { count: cancCount, valor: Math.round(cancValor) },
+    };
+
+    res.json({ resumen, porDia, porHora, porMesero, porProducto, porCategoria, porFormaPago, porDiaSemana, porMesa, porCortesia });
   } catch(e) {
     console.error('/api/reportes:', e);
     res.status(500).json({ error: "Error de conexión" });
