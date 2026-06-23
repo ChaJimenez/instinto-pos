@@ -398,6 +398,7 @@ body { font-family: system-ui, -apple-system, sans-serif; background: #f5f5f3; m
       <div class="pago-opt" id="pagoDebito" onclick="selPago(this,'Débito')">💳 Débito</div>
       <div class="pago-opt" id="pagoCredito" onclick="selPago(this,'Crédito')">💳 Crédito</div>
       <div class="pago-opt" id="pagoAmex" onclick="selPago(this,'Amex')">🟣 Amex</div>
+      <div class="pago-opt" id="pagoTransferencia" onclick="selPago(this,'Transferencia')">📲 Transferencia</div>
       <div class="pago-opt" id="pagoMixto" onclick="selPago(this,'Mixto')">🔀 Mixto</div>
     </div>
     <div id="mixtoSection" style="display:none;margin-bottom:12px;">
@@ -793,6 +794,7 @@ body { font-family: system-ui, -apple-system, sans-serif; background: #f5f5f3; m
       <div class="pago-opt" onclick="selEditPago(this,'Débito')">💳 Débito</div>
       <div class="pago-opt" onclick="selEditPago(this,'Crédito')">💳 Crédito</div>
       <div class="pago-opt" onclick="selEditPago(this,'Amex')">🟣 Amex</div>
+      <div class="pago-opt" onclick="selEditPago(this,'Transferencia')">📲 Transferencia</div>
     </div>
     <button class="btn btn-dark" onclick="guardarEdicionVenta()">✓ Guardar cambio</button>
     <button class="btn btn-outline" onclick="cerrarModal('modalEditVenta')">Cancelar</button>
@@ -818,6 +820,7 @@ body { font-family: system-ui, -apple-system, sans-serif; background: #f5f5f3; m
       <div class="pago-opt" onclick="selPagoModal(this,'Débito')">💳 Débito</div>
       <div class="pago-opt" onclick="selPagoModal(this,'Crédito')">💳 Crédito</div>
       <div class="pago-opt" onclick="selPagoModal(this,'Amex')">🟣 Amex</div>
+      <div class="pago-opt" onclick="selPagoModal(this,'Transferencia')">📲 Transferencia</div>
       <div class="pago-opt" onclick="selPagoModal(this,'Mixto')">🔀 Mixto</div>
     </div>
     </div>
@@ -3751,7 +3754,7 @@ function renderAdmin(){
   }
 
   // ── FORMAS DE PAGO ──
-  const pagColors={'Efectivo':'#0D2A5E','Débito':'#2d7a2d','Crédito':'#e67e22','Amex':'#6366f1','Tarjeta':'#F5A020','Mixto':'#4A90C4'};
+  const pagColors={'Efectivo':'#0D2A5E','Débito':'#2d7a2d','Crédito':'#e67e22','Amex':'#6366f1','Tarjeta':'#F5A020','Transferencia':'#0891b2','Mixto':'#4A90C4'};
   document.getElementById('adminPago').innerHTML=total?Object.entries(metodos).sort((a,b)=>b[1].t-a[1].t).map(([m,d])=>{
     const pct=Math.round(d.t/total*100),color=pagColors[m]||'#888';
     return`<div style="margin-bottom:14px;">
@@ -4671,7 +4674,7 @@ ${!isOneDay&&porDia.length>1?`
     <h2>Formas de pago</h2>
     ${Object.entries(metodos).sort((a,b)=>b[1].t-a[1].t).map(([m,d])=>{
       const pct=total?Math.round(d.t/total*100):0;
-      const colors={'Efectivo':'#0D2A5E','Débito':'#2d7a2d','Crédito':'#e67e22','Amex':'#6366f1','Tarjeta':'#F5A020','Mixto':'#4A90C4'};
+      const colors={'Efectivo':'#0D2A5E','Débito':'#2d7a2d','Crédito':'#e67e22','Amex':'#6366f1','Tarjeta':'#F5A020','Transferencia':'#0891b2','Mixto':'#4A90C4'};
       return`<div style="margin-bottom:14px;">
         <div style="display:flex;justify-content:space-between;margin-bottom:4px;">
           <span style="font-weight:600;">${m}</span>
