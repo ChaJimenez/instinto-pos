@@ -1,6 +1,8 @@
 // Servidor local para preview — no requiere Vercel CLI
 const path = require('path');
 const fs   = require('fs');
+const http = require('http');
+const WebSocket = require('ws');
 
 // Cargar .env.local si existe (credenciales Redis en local)
 const envFile = path.join(__dirname, '../.env.local');
@@ -41,10 +43,38 @@ app.use(staticMw(PUB));
 // Catch-all → POS principal
 app.get('*', (_req, res) => res.sendFile(path.join(PUB, 'index.html')));
 
-app.listen(PORT, () => {
+// ── WebSockets para sincronización local ──
+const server = http.createServer(app);
+const wss = new WebSocket.Server({ server, path: '/api/ws' });
+
+// Broadcast a todos los clientes WebSocket
+function broadcastWS(type, data) {
+  const msg = JSON.stringify({ type, data, ts: Date.now() });
+  wss.clients.forEach(client => {
+    if (client.readyState === WebSocket.OPEN) {
+      client.send(msg);
+    }
+  });
+}
+
+// Inyectar función broadcast en el app para que /api/sync también use WebSocket
+const originalBroadcast = global.broadcastChange || (() => {});
+global.broadcastChange = (type, data) => {
+  originalBroadcast(type, data);
+  broadcastWS(type, data);
+};
+
+wss.on('connection', (ws) => {
+  ws.send(JSON.stringify({ type: 'connected' }));
+  ws.on('close', () => {});
+  ws.on('error', () => {});
+});
+
+server.listen(PORT, () => {
   console.log(`\n  ✓ POS       → http://localhost:${PORT}`);
   console.log(`  ✓ Cocina    → http://localhost:${PORT}/cocina`);
   console.log(`  ✓ Turnos    → http://localhost:${PORT}/turnos`);
   console.log(`  ✓ Reportes  → http://localhost:${PORT}/reportes`);
+  console.log(`  ✓ WebSocket → ws://localhost:${PORT}/api/ws`);
   console.log(`\n  Ctrl+C para detener\n`);
 });

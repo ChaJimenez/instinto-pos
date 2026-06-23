@@ -18,6 +18,17 @@ app.use(express.json({
 
 const KEYS = { cmd: 'i:cmd', vta: 'i:vta', mes: 'i:mes', canc: 'i:canc', ts: 'i:lastUpdate' };
 
+// ── Broadcast de eventos en tiempo real (clientes conectados via SSE/WebSocket) ──
+const _clients = new Set();
+function broadcastChange(type, data) {
+  const msg = JSON.stringify({ type, data, ts: Date.now() });
+  for (const client of _clients) {
+    if (typeof client.write === 'function') { // SSE
+      client.write(`data: ${msg}\n\n`);
+    }
+  }
+}
+
 // ── WAL (Write-Ahead Log) para cobros individuales ──
 // Cada cobro se registra aquí ANTES del bulk save — garantiza durabilidad
 // aunque el guardar() falle o dos tablets guarden simultáneamente.
@@ -150,6 +161,8 @@ app.post('/api/guardar', requireAuth, async (req, res) => {
       // Limpiar WAL fusionado: entradas desde 0 hasta walCount-1
       walCount > 0 ? kv.ltrim(WAL_KEY, walCount, -1) : Promise.resolve(),
     ]);
+    // Notificar a todos los clientes de cambios
+    broadcastChange('sync', { cmd: (cmd || []).length, vta: vtaMerged.length });
     res.json({ ok: true, walMerged: vtaMerged.length - (vta || []).length });
   } catch (e) {
     console.error('Error /api/guardar:', e);
@@ -172,6 +185,7 @@ app.post('/api/cobro', requireAuth, async (req, res) => {
         kv.rpush(WAL_KEY, JSON.stringify(venta)),
         kv.set(KEYS.ts, Date.now()),
       ]);
+      broadcastChange('cobro', { id: venta.id });
     }
     res.json({ ok: true, duplicate: yaExiste });
   } catch (e) {
@@ -226,6 +240,37 @@ app.get('/api/lastUpdate', async (req, res) => {
   } catch (e) {
     res.json({ ts: 0 });
   }
+});
+
+// ── Server-Sent Events (SSE) para sincronización en tiempo real ──
+app.get('/api/sync', (req, res) => {
+  // BUG #7 FIX: Validar token desde query param (EventSource no soporta headers custom)
+  const token = req.query.token || req.headers['x-api-key'];
+  if (!token) return res.status(401).json({ error: 'No autorizado' });
+  if (token !== API_SECRET && !verifyToken(token)) return res.status(401).json({ error: 'No autorizado' });
+
+  res.setHeader('Content-Type', 'text/event-stream');
+  res.setHeader('Cache-Control', 'no-cache');
+  res.setHeader('Connection', 'keep-alive');
+  res.setHeader('X-Accel-Buffering', 'no');
+
+  _clients.add(res);
+  res.write(':connected\n\n');
+
+  // Heartbeat cada 30s para mantener conexión viva
+  const heartbeat = setInterval(() => {
+    res.write(':heartbeat\n\n');
+  }, 30000);
+
+  req.on('close', () => {
+    clearInterval(heartbeat);
+    _clients.delete(res);
+  });
+
+  req.on('error', () => {
+    clearInterval(heartbeat);
+    _clients.delete(res);
+  });
 });
 
 // ── Importar backup de localStorage (una sola vez) ──
