@@ -138,6 +138,52 @@ Comandos rápidos:
 
 ---
 
+## 🆕 LO QUE SE HIZO HOY ✅ (23 junio 2026 — sesión noche)
+
+### Reporte Completo — 8 KPIs + 4 Secciones Nuevas
+**Problema:** El reporte era muy básico (solo ingresos, cuentas, ticket prom., mejor día)  
+**Fix:** Reescritura completa de `reportes.html` + expansión de `/api/reportes`
+
+**API (`api/index.js`):**
+- ✅ `resumen` ampliado: propinas, cortesías, descuentos, ventasLocales, ventasDelivery, mejorHora, cancelaciones
+- ✅ Nueva aggregación `porDiaSemana` (Dom–Sáb, qué día vende más)
+- ✅ Nueva aggregación `porMesa` (solo mesas locales, excluye delivery)
+- ✅ Nueva aggregación `porCortesia` (qué platillos se regalan más)
+- ✅ `porMesero` ahora incluye cortesías y propinas por mesero
+- ✅ Lee `v.pago` (campo real) en lugar de solo `v.formaPago`
+- ✅ Normaliza "Mixto ($X ef / $Y tj)" → categoría "Mixto"
+
+**UI (`public/reportes.html`):**
+- ✅ 8 KPIs en 2 filas: Ingresos · Cuentas · Ticket · Mejor día / Propinas · Cortesías · Descuentos · Hora pico
+- ✅ Sección nueva: **Ventas por día de semana** (bar chart Dom–Sáb, marca el dominante)
+- ✅ Sección nueva: **Ventas por mesa** (bar chart + tabla con ticket prom. por mesa)
+- ✅ Sección nueva: **Cortesías y descuentos** (pills de totales + top platillos en cortesía)
+- ✅ Hora: heatmap de densidad + barras de ingreso por hora debajo
+- ✅ Mesero: tabla ahora incluye columnas Cortesías y Propinas
+- ✅ Productos: columna % del total
+- ✅ Export CSV incluye todas las secciones nuevas
+
+**Commits:**
+- `136d53e` feat: reporte completo con 8 KPIs, 4 secciones nuevas y análisis profundo
+
+---
+
+### Transferencia como Forma de Pago
+**Problema:** Solo había Efectivo/Débito/Crédito/Amex/Mixto — sin opción para SPEI/CoDi  
+**Fix:** Botón 📲 Transferencia agregado en los 3 flujos de cobro
+
+- ✅ Botón en pantalla nueva comanda (entre Amex y Mixto)
+- ✅ Botón en modal cobrar mesa
+- ✅ Botón en modal editar venta cerrada
+- ✅ Color teal `#0891b2` en mapas de colores (admin panel + reporte turno)
+- ✅ No suma a `tjTotal` (no es tarjeta), no muestra propina ni sección mixto
+- ✅ Reporte ya la separa automáticamente (leía `v.pago` desde antes)
+
+**Commit:**
+- `2d76e7b` feat: agregar Transferencia como forma de pago en ventas
+
+---
+
 ## 🆕 LO QUE SE HIZO HOY ✅ (23 junio 2026 — sesión tarde)
 
 ### Sincronización en Tiempo Real — WebSocket + SSE + Fallback Polling
@@ -201,6 +247,8 @@ Comandos rápidos:
 |-----|---------|--------|-----------------|
 | ✅ Comandas se pierden en caja | CRÍTICO | RESUELTO | WebSocket sync |
 | ✅ Precios vuelven al original | CRÍTICO | RESUELTO | localStorage + Redis TTL |
+| ✅ Reporte demasiado simple | Operativo | RESUELTO | 8 KPIs + 4 secciones nuevas |
+| ✅ Sin opción Transferencia | Operativo | RESUELTO | Botón en los 3 flujos de cobro |
 | `costoTotal` en turnos no proratea | Dato incorrecto | PENDIENTE | `turnos.html:325` |
 | CORS abierto a todos | Seguridad baja | PENDIENTE | `api/index.js:12` |
 | PINs gerentes plaintext | Seguridad baja | PENDIENTE | `api/index.js:~372` |
