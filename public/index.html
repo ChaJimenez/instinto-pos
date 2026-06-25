@@ -1485,6 +1485,14 @@ async function guardar(){
       }
       return;
     }
+    if(_gResp.status===401){
+      // Token expirado — renovar sesión y reintentar
+      sessionStorage.removeItem('_pt');sessionStorage.removeItem('_pte');
+      API_KEY='';_tokExp=0;
+      await _showPinGate();
+      setTimeout(()=>guardar().catch(()=>{}),500);
+      return;
+    }
     if(!_gResp.ok){throw new Error('HTTP '+_gResp.status);}
     // Actualizar marca de tiempo local para que el poll no recargue el estado que acabamos de guardar
     ultimaActualizacion = Date.now();
@@ -1605,6 +1613,15 @@ async function handleSyncEvent(msg){
 setInterval(()=>{
   if((ventas.length||comandas.length)&&navigator.onLine) guardar().catch(()=>{});
 },300000);
+
+// Verificación de token cada 10 min — renueva antes de que expire para no perder ventas en turno largo
+setInterval(async()=>{
+  if(_tokExp>0&&Date.now()>_tokExp-120000){
+    sessionStorage.removeItem('_pt');sessionStorage.removeItem('_pte');
+    API_KEY='';_tokExp=0;
+    await _showPinGate();
+  }
+},600000);
 
 // Fallback polling (solo si sync no disponible): cada 30s
 setInterval(async()=>{
@@ -2078,8 +2095,8 @@ function validarMixto(total){
 function selPropinaM(el,pct){
   document.querySelectorAll('#mixtoSection .propina-btn').forEach(b=>b.classList.remove('sel'));
   el.classList.add('sel');document.getElementById('mixtoPropinaCustom').value='';
-  const tj=currentMixtoTj||parseFloat(document.getElementById('mixtoTarjeta').value)||0;
-  currentPropina=pct>0?Math.round(tj*pct)/100:0;
+  const base=totales().cobrable;
+  currentPropina=pct>0?Math.round(base*pct)/100:0;
   document.getElementById('mixtoPropinaDisplay').textContent=currentPropina>0?`Propina: ${fmtProp(currentPropina)} (${pct}%)`:'Sin propina';
 }
 function setPropinaM(val){
@@ -2268,6 +2285,11 @@ function guardarCancelacionesItems(){
 function resetForm(){
   document.getElementById('mesa').value='';document.getElementById('meseroSel').value='';
   currentItems=[];currentPago='Efectivo';currentPropina=0;currentMixtoEf=0;currentMixtoTj=0;currentMixtoTipo='Débito';editandoId=null;
+  // Aplicar sync que otra tablet envió mientras estábamos editando
+  if(window._pendingSyncData){
+    const pd=window._pendingSyncData;window._pendingSyncData=null;
+    cargarDatos(true).then(()=>{renderAbiertas();ultimaActualizacion=pd.ts||Date.now();});
+  }
   currentCanal=null;document.getElementById('deliveryApps').classList.remove('open');_updateCanalUI();_updatePagoVisibility();
   const activeCat=document.querySelector('.cat-btn.active')?.textContent;if(activeCat)renderPlatillos(activeCat);
   document.querySelectorAll('#screen-nueva .pago-opt').forEach((e,i)=>e.classList.toggle('sel',i===0));
@@ -2751,8 +2773,9 @@ function validarMixtoModal(total){
 function selPropinaMMod(el,pct){
   document.querySelectorAll('#modalMixtoSection .propina-btn').forEach(b=>b.classList.remove('sel'));
   el.classList.add('sel');document.getElementById('modalMixtoPropinaCustom').value='';
-  const tj=modalMixtoTj||parseFloat(document.getElementById('modalMixtoTarjeta').value)||0;
-  modalPropina=pct>0?Math.round(tj*pct)/100:0;
+  const c=comandas.find(x=>x.id===modalIdx);
+  const base=c?calcDescModal(c).cobrable:0;
+  modalPropina=pct>0?Math.round(base*pct)/100:0;
   document.getElementById('modalMixtoPropinaDisplay').textContent=modalPropina>0?`Propina: ${fmtProp(modalPropina)} (${pct}%)`:'Sin propina';
 }
 function setPropinaMMod(val){
