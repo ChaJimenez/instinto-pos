@@ -840,10 +840,12 @@ app.get('/api/reportes', async (req, res) => {
     const porCategoria = Object.values(catMap).sort((a, b) => b.total - a.total);
 
     // Por forma de pago
+    // ventas se guardan con campo `pago` (el frontend nunca usó `formaPago`)
     const pagoMap = {};
     filtradas.forEach(v => {
-      const raw = v.formaPago || 'Efectivo';
-      const label = raw.charAt(0).toUpperCase() + raw.slice(1).toLowerCase();
+      const rawPago = v.pago || v.formaPago || 'Efectivo';
+      // Normalizar "Mixto ($X ef / $Y tarjeta)" → "Mixto"
+      const label = rawPago.startsWith('Mixto') ? 'Mixto' : rawPago;
       if (!pagoMap[label]) pagoMap[label] = { forma: label, cuentas: 0, total: 0 };
       pagoMap[label].cuentas++;
       pagoMap[label].total += v.total || 0;
