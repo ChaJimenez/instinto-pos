@@ -9,7 +9,10 @@ const kv = new Redis({
 });
 
 const app = express();
-app.use(cors());
+app.use(cors({
+  origin: ['https://instinto-sistema-cobranza.vercel.app', 'http://localhost:3001', 'http://localhost:3000'],
+  methods: ['GET', 'POST', 'OPTIONS'],
+}));
 // verify captura el raw body Buffer para verificación HMAC de webhooks externos
 app.use(express.json({
   limit: '10mb',
@@ -93,19 +96,28 @@ function verifyToken(t) {
   } catch { return false; }
 }
 
-// ── Rate limiting en memoria (por IP) ──
-const _rl = new Map();
-function checkRateLimit(ip, max = 10, windowMs = 60000) {
-  const now = Date.now();
-  const r = _rl.get(ip) || { n: 0, t: now + windowMs };
-  if (now > r.t) { r.n = 0; r.t = now + windowMs; }
-  r.n++;
-  _rl.set(ip, r);
-  return r.n > max;
+// ── Rate limiting en Redis (cross-instance) ──
+// Ventana fija por minuto de reloj — adecuada para prevenir brute-force en endpoints de auth
+async function checkRateLimit(ip, max = 10, windowSec = 60) {
+  const win = Math.floor(Date.now() / (windowSec * 1000));
+  const key = `rl:${Buffer.from(ip).toString('base64url').slice(0,16)}:${win}`;
+  try {
+    const count = await kv.incr(key);
+    if (count === 1) await kv.expire(key, windowSec + 5);
+    return count > max;
+  } catch {
+    return false; // si Redis falla, no bloquear — disponibilidad > seguridad en un POS
+  }
 }
 function getIp(req) {
   return (req.headers['x-forwarded-for'] || '').split(',')[0].trim() || req.socket?.remoteAddress || 'unknown';
 }
+
+// Hashea un PIN con API_SECRET como pepper — HMAC-SHA256 hace que 4 dígitos sean indescifrables sin la clave
+function hashPin(pin) {
+  return crypto.createHmac('sha256', API_SECRET).update(String(pin)).digest('hex');
+}
+function isHashedPin(val) { return /^[0-9a-f]{64}$/.test(val); }
 
 // Middleware de autenticación — acepta API_SECRET directo O token de sesión firmado
 function requireAuth(req, res, next) {
@@ -392,9 +404,9 @@ app.post('/api/requeue', requireAuth, async (req, res) => {
 });
 
 // ── Auth con PIN → devuelve token de sesión firmado ──
-app.post('/api/auth', (req, res) => {
+app.post('/api/auth', async (req, res) => {
   const ip = getIp(req);
-  if (checkRateLimit(ip, 10, 60000)) return res.status(429).json({ error: 'Demasiados intentos. Espera 1 minuto.' });
+  if (await checkRateLimit(ip, 10, 60)) return res.status(429).json({ error: 'Demasiados intentos. Espera 1 minuto.' });
   const { pin } = req.body || {};
   if (!PIN || String(pin) !== String(PIN)) return res.status(401).json({ error: 'PIN incorrecto' });
   res.json({ token: signToken(), exp: Date.now() + TOKEN_TTL });
@@ -403,7 +415,7 @@ app.post('/api/auth', (req, res) => {
 // ── Validar PIN (sin exponer el PIN en el cliente) ──
 app.post('/api/validate-pin', async (req, res) => {
   const ip = getIp(req);
-  if (checkRateLimit(ip, 10, 60000)) return res.status(429).json({ ok: false, error: 'Demasiados intentos' });
+  if (await checkRateLimit(ip, 10, 60)) return res.status(429).json({ ok: false, error: 'Demasiados intentos' });
   const { pin } = req.body || {};
   if (pin === PIN) res.json({ ok: true });
   else res.status(401).json({ ok: false });
@@ -423,12 +435,20 @@ app.get('/api/gerentes', async (req, res) => {
 // Validar PIN de un gerente específico
 app.post('/api/gerentes/validar', async (req, res) => {
   const ip = getIp(req);
-  if (checkRateLimit(ip, 10, 60000)) return res.status(429).json({ ok: false });
+  if (await checkRateLimit(ip, 10, 60)) return res.status(429).json({ ok: false });
   try {
     const { nombre, pin } = req.body || {};
     if (!nombre || !pin) return res.json({ ok: false });
     const lista = await kv.get(GERENTES_KEY) || [];
-    const ok = lista.some(x => x.nombre === nombre && x.pin === String(pin));
+    const g = lista.find(x => x.nombre === nombre);
+    if (!g) return res.json({ ok: false });
+    const legacy = !isHashedPin(g.pin);
+    const ok = legacy ? g.pin === String(pin) : g.pin === hashPin(String(pin));
+    if (ok && legacy) {
+      // Auto-migrar PIN plaintext → hash en el primer login exitoso
+      const migrada = lista.map(x => x.nombre === nombre ? { ...x, pin: hashPin(x.pin) } : x);
+      kv.set(GERENTES_KEY, migrada).catch(() => {});
+    }
     res.json({ ok });
   } catch(e) { res.status(500).json({ ok: false }); }
 });
@@ -445,7 +465,7 @@ app.post('/api/gerentes/guardar', async (req, res) => {
     existentes.forEach(g => { pinMap[g.nombre] = g.pin; });
     const nuevaLista = gerentes.map(g => ({
       nombre: g.nombre,
-      pin: g.pin === '___keep___' ? (pinMap[g.nombre] || '') : String(g.pin)
+      pin: g.pin === '___keep___' ? (pinMap[g.nombre] || '') : hashPin(String(g.pin))
     }));
     await kv.set(GERENTES_KEY, nuevaLista);
     res.json({ ok: true });

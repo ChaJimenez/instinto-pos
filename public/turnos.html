@@ -324,7 +324,11 @@ function cargarResumen() {
   const horasTotal = completados.reduce((s,t) => s + (t.minutos||0), 0);
   const costoTotal = turnos.reduce((s,t) => {
     const sal = t.salarioDia || 0;
-    return s + sal;
+    if (!sal) return s;
+    const mins = t.salida
+      ? (t.minutos || Math.round((new Date(t.salida) - new Date(t.entrada)) / 60000))
+      : Math.round((Date.now() - new Date(t.entrada)) / 60000);
+    return s + Math.min(sal, Math.round(sal * mins / 480)); // 480 min = jornada 8h
   }, 0);
   // KPIs
   document.getElementById('kpiRow').innerHTML = `
