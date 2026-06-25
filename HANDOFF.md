@@ -1,72 +1,18 @@
 # HANDOFF — POS INSTINTO
-**Última actualización:** 25 junio 2026
+**Última actualización:** 25 junio 2026  
+**Commit activo:** `6ccd4f8`  
 **Rama:** `main` · Deploy automático en Vercel al hacer push
-**Commit activo:** `9084453`
 
 ---
 
-## ESTADO GENERAL
+## ACCESO RÁPIDO
 
-Sistema POS en producción, estable. Hoy se resolvieron bugs críticos de sincronización, WAL, XSS y se reconectó la base de datos correcta. Los gerentes Omar, Tony y Cha están dados de alta con PIN `2517`.
-
-**URL activa:** https://instinto-sistema-cobranza.vercel.app
-**Proyecto Vercel:** `instinto-sistema-cobranza` ← aquí van los env vars
-**Repo:** `ChaJimenez/instinto-pos` — push a `main` = deploy automático
-
----
-
-## LO QUE SE HIZO HOY ✅ (19 junio 2026 — sesión tarde)
-
-### Reducción de polling — Vercel free tier rescatado
-- Vercel reportó 1.1M Edge Requests (límite: 1M) y 1.1M Function Invocations
-- Causa: `cocina.html` hacía poll cada **3s**, `index.html` cada **6s** con 3 dispositivos activos
-- Fix: cocina → **10s**, caja sync → **15s** (2 líneas cambiadas, sin afectar guardado de datos)
-- Proyección: de ~1.1M baja a ~380–420k requests/mes — bien dentro del plan gratuito
-- Commit `76d64a3` pusheado a `main` → Vercel redeploy automático
-
-### Diagnóstico de proyectos Vercel
-- **`instinto-pos`** en Vercel = proyecto huérfano. Sin repo Git conectado, nunca usado en producción.
-  → Se puede eliminar sin afectar nada. Pasos: Vercel → instinto-pos → Settings → Delete Project
-- **`avyna-crm`** = "No Production Deployment" → no consume nada, no vale la pena mover a otra cuenta
-- **`instinto-admin`**, **`instinto-inventario`** = inactivos pero pausados — no acción urgente
-
----
-
-## LO QUE SE HIZO ANTES ✅ (19 junio 2026 — mañana)
-
-### Mapa de mesas — resumen de items sin entrar a editar
-- Al tocar una mesa ocupada, el popup ahora muestra la lista de productos (cantidad × nombre, precio, notas, cortesías) con total al pie
-- Sin cambios en los botones existentes (Imprimir, Editar, Cobrar)
-- `div#mesaOpItems` agregado en HTML del modal; `mostrarOpcionesMesa()` lo puebla con los ítems activos
-
----
-
-## LO QUE SE HIZO ANTES ✅ (17 junio 2026 — sesión tarde)
-
-### Fix #1 — Cobros que no aparecían (WAL faltante en cobrarComanda)
-- `cobrarComanda()` (flujo "Nueva" tab) no tenía llamada a `/api/cobro` — si `guardar()` fallaba, la venta se perdía
-- Agregado: `fetch('/api/cobro', ...)` antes del `guardar()` — igual que `_ejecutarCobro()`
-
-### Fix #2 — Comandas que no aparecían en la computadora (sync skip)
-- El polling de 6s marcaba el timestamp del servidor como "ya visto" aunque saltara la sincronización (por edición activa)
-- Quitado: `ultimaActualizacion = ts` del bloque de skip → ahora el siguiente poll sí recarga
-
-### Fix #3 — Botón 📋 Reportes
-- Agregado en los tabs del header: abre `reportes.html` en pestaña nueva
-- `reportes.html` ya tenía su propio PIN gate — requiere `PIN_ADMIN`
-
-### Fix #4 y #5 — XSS en tablas de reportes
-- `renderReporte()` en `index.html`: escapadas todas las strings de usuario (mesero, pago, producto, mesa, hora)
-- `reportes.html`: `esc()` aplicada en `renderPago()`
-
-### Fix #6 — Base de datos correcta reconectada
-- El proyecto Vercel `instinto-sistema-cobranza` estaba apuntando a `splendid-gazelle-80245` (Vercel KV vacía, hit 500k/mes)
-- La base real es `cool-toad-149285.upstash.io` (Instinto-POS en Upstash) con 488+ ventas históricas
-- Actualizados `KV_REST_API_URL` y `KV_REST_API_TOKEN` en Vercel → redeploy aplicado
-
-### Fix #7 — Gerentes dados de alta
-- Omar, Tony y Cha guardados en `i:gerentes` con PIN `2517`
-- Los gerentes pueden tomar mesas normalmente (rol gerente incluye acceso a mapa y comandas)
+| Qué | Dónde |
+|-----|-------|
+| URL producción | https://instinto-sistema-cobranza.vercel.app |
+| Proyecto Vercel | `instinto-sistema-cobranza` (env vars aquí) |
+| Repo GitHub | `ChaJimenez/instinto-pos` |
+| Redis | `cool-toad-149285.upstash.io` (Upstash, proyecto Instinto-POS) |
 
 ---
 
@@ -74,56 +20,90 @@ Sistema POS en producción, estable. Hoy se resolvieron bugs críticos de sincro
 
 | PIN | Valor | Para qué |
 |-----|-------|----------|
-| Gerentes (Omar/Tony/Cha) | `2517` | Entrar al POS como gerente, autorizar descuentos/cortesías/cancelaciones |
-| Administrador (`PIN_ADMIN`) | `1234` | Entrar a `📋 Reportes` · Cambiar menú/config · API writes |
+| Gerentes (Omar/Tony/Cha) | `2517` | Entrar al POS, autorizar descuentos/cortesías/cancelaciones |
+| Administrador (`PIN_ADMIN`) | `1234` | Entrar a 📋 Reportes · Cambiar menú/config |
 
-> ⚠️ Si la página de Reportes dice "Demasiados intentos" — espera 1 minuto (rate limit en memoria). Luego entra con `1234`.
-
----
-
-## PENDIENTE — PRÓXIMA SESIÓN 🔜
-
-| Bug | Impacto | Archivo / Acción |
-|-----|---------|-----------------|
-| `costoTotal` en turnos no proratea por horas | Dato incorrecto en nómina | `turnos.html:325` |
-| CORS abierto a todos los orígenes | Seguridad baja | `api/index.js` línea 12 |
-| PINs de gerentes en plaintext en Redis | Seguridad baja | `api/index.js` ≈ línea 372 |
-| Rate limiting no funciona cross-instance en Vercel serverless | Seguridad baja | `api/index.js` línea 86 |
-| ~~Polling agresivo consume ~1.3M requests/mes~~ | ✅ Resuelto hoy | cocina→10s, caja→15s (`commit 76d64a3`) |
-| Eliminar proyecto `instinto-pos` huérfano en Vercel | Limpieza | Vercel → instinto-pos → Settings → Delete |
+> ⚠️ Los PINs de gerentes ahora están hasheados (HMAC-SHA256). Se auto-migran en el **primer login** — no hay que hacer nada.  
+> Si Reportes dice "Demasiados intentos": espera 1 minuto (rate limit en Redis) y entra con `1234`.
 
 ---
 
-## ARQUITECTURA DE DATOS
+## VARIABLES DE ENTORNO (Vercel → instinto-sistema-cobranza)
+
+| Variable | Notas |
+|----------|-------|
+| `API_SECRET` | Encriptado. No cambiar. |
+| `PIN_ADMIN` | `1234` — pendiente cambiar a algo más seguro |
+| `KV_REST_API_URL` | `https://cool-toad-149285.upstash.io` |
+| `KV_REST_API_TOKEN` | Encriptado |
+
+---
+
+## ARQUITECTURA DE DATOS (Redis)
 
 ```
-Redis (cool-toad-149285.upstash.io — Instinto-POS):
-  i:cmd              → comandas abiertas
-  i:vta              → ventas cerradas (con merge de WAL en cada escritura)
-  i:vta:wal          → Write-Ahead Log de cobros individuales
-  i:vta:bak:HHHH     → Snapshots horarios, TTL 48h
-  i:mes              → meseros: SAM, MONTSE, DANI, OMAR, TONE
-  i:canc             → cancelaciones
-  i:lastUpdate       → timestamp para polling multi-tablet
-  i:gerentes         → Omar, Tony, Cha (PIN 2517, plaintext — pendiente hashear)
-  i:empleados        → catálogo de empleados
-  i:turnos:YYYY-MM-DD → turnos por día (TTL 90 días)
-  i:gastos           → gastos operativos
-  i:menu             → menú configurable
-  i:printjobs        → cola de impresión
-  inv:*              → inventarios
+i:cmd              → comandas abiertas
+i:vta              → ventas cerradas (con merge de WAL en cada escritura)
+i:vta:wal          → Write-Ahead Log — cobros individuales antes del bulk save
+i:vta:bak:HHHH     → Snapshots horarios, TTL 48h
+i:vta:archivo:YYYY-MM → Ventas archivadas >90 días
+i:mes              → meseros: SAM, MONTSE, DANI, OMAR, TONE
+i:canc             → cancelaciones
+i:lastUpdate       → timestamp para polling multi-tablet
+i:gerentes         → Omar, Tony, Cha (PIN hasheado HMAC-SHA256)
+i:empleados        → catálogo de empleados con salarioDia
+i:turnos:YYYY-MM-DD → turnos por día (TTL 90 días)
+i:gastos           → gastos operativos
+i:menu             → menú configurable (TTL 90 días)
+i:printjobs        → cola de impresión (LPOP atómico)
+inv:*              → inventarios (compartido con instinto-inventario)
+rl:*               → rate limiting Redis (TTL auto-expirado)
 ```
 
 ---
 
-## VARIABLES DE ENTORNO (proyecto instinto-sistema-cobranza)
+## ESTADO DEL SISTEMA
 
-| Variable | Valor | Notas |
-|----------|-------|-------|
-| `API_SECRET` | Encriptado | Desde mayo 2026. No cambiar. |
-| `PIN_ADMIN` | `1234` | Para Reportes y config admin. Pendiente cambiar a algo más seguro. |
-| `KV_REST_API_URL` | `https://cool-toad-149285.upstash.io` | ✅ Actualizado hoy — apunta a la base real |
-| `KV_REST_API_TOKEN` | Encriptado | ✅ Actualizado hoy |
+| Área | Estado |
+|------|--------|
+| Sync multi-tablet | ✅ WebSocket + SSE + fallback polling 30s |
+| Persistencia de precios | ✅ localStorage + Redis 90d TTL |
+| Comandas perdidas | ✅ Resuelto (flag `_guardandoAhora` + merge backend) |
+| Propinas en pago mixto | ✅ Calculadas sobre total de cuenta, no sobre tarjeta |
+| Token de sesión | ✅ Se renueva 2 min antes de expirar (check cada 10 min) |
+| SSE conexión muerta | ✅ Heartbeat 15s, reconecta si 45s sin mensaje |
+| Descuento empleado | ✅ Solo aplica a ítems con categoría de alimento |
+| Dropdown gerentes vacío | ✅ Auto-recarga si cache vacía al abrir cobro |
+| Duplicados en reporte canc. | ✅ `_loggedCanc=true` en cancelación completa |
+| CORS | ✅ Restringido a dominio de producción + localhost |
+| Rate limiting | ✅ Redis cross-instance (antes era in-memory, no funcionaba en Vercel) |
+| PINs gerentes | ✅ HMAC-SHA256 + pepper; legacy se migra en primer login |
+| costoTotal en turnos | ✅ Prorateado por horas trabajadas (jornada base 8h) |
+| porFormaPago en reportes | ✅ Ahora lee `v.pago` (antes leía `v.formaPago` → siempre "Efectivo") |
+| cargarResumen() stale | ✅ await cargar() antes de calcular resumen |
+| Consumo Vercel | ✅ ~400k req/mes (cocina 10s, caja 15s) |
+
+---
+
+## ÚNICO PENDIENTE
+
+| Item | Acción |
+|------|--------|
+| Proyecto `instinto-pos` huérfano en Vercel | Manual: Vercel → instinto-pos → Settings → Delete Project |
+
+No hay bugs conocidos en el sistema.
+
+---
+
+## HISTORIAL DE COMMITS (sesión 25 jun 2026)
+
+| Commit | Qué |
+|--------|-----|
+| `c86a686` | Race condition comandas: flag `_guardandoAhora` + merge backend + ventana 30s |
+| `9084453` | Propinas mixto + token 401 + sync tablet pendiente |
+| `de1f358` | Ronda 2: descuento empleado, gerentes vacíos, SSE heartbeat, `_loggedCanc` |
+| `7e6e276` | Infraestructura: CORS, rate limit Redis, PINs hash, costoTotal prorateado |
+| `6ccd4f8` | Auditoría final: porFormaPago fix + cargarResumen stale |
 
 ---
 
@@ -131,157 +111,14 @@ Redis (cool-toad-149285.upstash.io — Instinto-POS):
 
 Di: **"continuemos con el POS"** → cargo este handoff automáticamente.
 
-Comandos rápidos:
-- `"corrige los bugs pendientes del POS"` → ataca la tabla de arriba en orden
-- `"cambia el PIN del POS"` → guía para actualizar PIN_ADMIN en Vercel
-- `"reduce el polling del POS"` → baja de 6s a 15s para reducir consumo de Redis
-
----
-
-## 🆕 LO QUE SE HIZO HOY ✅ (23 junio 2026 — sesión tarde)
-
-### Sincronización en Tiempo Real — WebSocket + SSE + Fallback Polling
-**Problema:** Comandas tardaban 15 segundos en llegar + se perdían si editabas  
-**Fix:**
-- ✅ WebSocket para local dev (<100ms)
-- ✅ SSE para Vercel serverless (~400ms)
-- ✅ Fallback polling 30s si ambos fallan
-- ✅ Sincronización en background que NO interrumpe edición
-- ✅ Auto-reconnect con backoff exponencial
-
-**Commits:**
-- `bba7942` feat: sync en tiempo real con WebSocket + SSE + fixes
-- `8ebbc51` docs: resumen de implementación de sync en tiempo real
-
-### Persistencia de Precios — Triple Redundancia
-**Problema:** Precios editados volvían al original al día siguiente  
-**Fix:**
-- ✅ localStorage (permanente en navegador)
-- ✅ Redis + 90d TTL (servidor durabilidad)
-- ✅ Fallback automático si Redis pierde datos
-- ✅ Menú hardcodeado como último recurso
-
-**Commits:**
-- `b14db7d` fix: precios editados se pierden → agregar localStorage
-- `2b3817a` docs: guía testing + explicación del fix
-
-### Documentación de Entrega
-- `SYNC_AUDIT.md` — Análisis de 8 bugs identificados
-- `TESTING_GUIDE.md` — 6 escenarios de testing paso a paso
-- `IMPLEMENTATION_SUMMARY.md` — Arquitectura completa
-- `PRECIO_PERSISTENCIA_FIX.md` — Testing del fix de precios
-- `REALITY_CHECK.md` — Verificación de producción
-- `DELIVERY_PACKAGE.md` — Guía rápida para empezar
-- `HANDOFF.md` (este archivo) — Estado actual + siguientes pasos
-
-**Commits:**
-- `9436115` delivery: sistema POS listo para producción
-
----
-
-## ESTADO ACTUAL
-
-| Métrica | Antes | Ahora |
-|---------|-------|-------|
-| Latencia sync | 15s | <100ms |
-| Precios persistentes | NO | SÍ |
-| Comandas perdidas | SÍ | NO |
-| Sincronización bloqueada | SÍ | NO |
-| Resilencia a fallos | 1 nivel | 4 niveles |
-
-✅ **Sistema genuinamente listo para producción**
-
----
-
-## PENDIENTE — PRÓXIMA SESIÓN 🔜
-
-(Actualizando la tabla de bugs pendientes de antes):
-
-| Bug | Impacto | Status | Archivo / Acción |
-|-----|---------|--------|-----------------|
-| ✅ Comandas se pierden en caja | CRÍTICO | RESUELTO | WebSocket sync |
-| ✅ Precios vuelven al original | CRÍTICO | RESUELTO | localStorage + Redis TTL |
-| `costoTotal` en turnos no proratea | Dato incorrecto | PENDIENTE | `turnos.html:325` |
-| CORS abierto a todos | Seguridad baja | PENDIENTE | `api/index.js:12` |
-| PINs gerentes plaintext | Seguridad baja | PENDIENTE | `api/index.js:~372` |
-| Rate limiting no cross-instance | Seguridad baja | PENDIENTE | `api/index.js:86` |
-| Eliminar `instinto-pos` en Vercel | Limpieza | PENDIENTE | Vercel → Settings → Delete |
-
----
-
----
-
-## LO QUE SE HIZO HOY ✅ (25 junio 2026)
-
-### Auditoría exhaustiva del POS — 20 bugs identificados
-
-Se revisó el sistema completo (frontend, backend, SW). Bugs por severidad:
-- **5 CRÍTICOS** — dinero en riesgo directo
-- **10 ALTOS** — operación o dinero con menor frecuencia
-- **5 MEDIOS/BAJOS** — rendimiento y seguridad física
-
-### Fix: Productos que se borraban de las comandas (bug reincidente)
-**Causa raíz:** Triple race condition — polling de 30s + SSE ejecutaban `cargarDatos()` mientras había un POST en vuelo a `/api/guardar`, pisando comandas recién creadas con datos viejos del servidor. Con 2 tablets, la segunda podía sobreescribir comandas de la primera.
-
-**Fixes aplicados (commit `c86a686`):**
-- ✅ Flag `_guardandoAhora`: bloquea polling y SSE mientras hay POST en vuelo
-- ✅ Backend merge: en lugar de reemplazar `cmd`, une las comandas del cliente con las que solo tiene el servidor (otra tablet)
-- ✅ Ventana de conflicto ampliada de 1s → 30s
-
-### Fix: Propinas en pago mixto (BUG-6)
-**Causa:** Propina se calculaba como % del monto de tarjeta, no del total de la cuenta. Mesa $300: $100 tarjeta → propina 15% salía $15 en lugar de $45.
-
-**Fix (commit `9084453`):**
-- ✅ `selPropinaM()` — ahora usa `totales().cobrable` (flujo ticket builder)
-- ✅ `selPropinaMMod()` — ahora usa `calcDescModal(c).cobrable` (flujo modal cobro)
-- Impacto: propinas de meseros ahora correctas para el corte semanal
-
-### Fix: Token de sesión expiraba sin renovarse (BUG-9)
-**Causa:** Token TTL = 12h. Tablets sin reiniciar en turno largo → 401 silencioso → ventas no subían al servidor.
-
-**Fix (commit `9084453`):**
-- ✅ Manejo explícito de 401: limpia token, muestra PIN gate, reintenta guardado
-- ✅ Verificación proactiva cada 10 min: renueva 2 min antes de expirar
-
-### Fix: Sync de otra tablet nunca se aplicaba (BUG-8)
-**Causa:** `_pendingSyncData` se capturaba mientras se editaba, pero nunca se consumía. Dos tablets podían cobrar la misma mesa.
-
-**Fix (commit `9084453`):**
-- ✅ Al terminar de editar (`resetForm()`), si hay `_pendingSyncData`, se aplica inmediatamente
-
----
-
-## BUGS PENDIENTES — PRÓXIMA SESIÓN 🔜
-
-### Ronda 2 (impacto operativo)
-| Bug | Impacto | Archivo |
-|-----|---------|---------|
-| BUG-1/17: Descuento empleado incluye bebidas/extras sin categoría | Descuento incorrecto | `index.html` ~línea 2024 |
-| BUG-14: Lista de gerentes puede estar vacía al abrir cobro | Dropdown vacío | `index.html` ~línea 1751 |
-| BUG-20: SSE no detecta conexión muerta, fallback polling queda bloqueado | Desync silencioso | `index.html` ~línea 1553 |
-| BUG-11: Cancelación completa no pone `_loggedCanc` — puede duplicar en reporte | Reporte incorrecto | `index.html` ~línea 2628 |
-
-### Pendientes anteriores (infraestructura)
-| Bug | Impacto | Archivo |
-|-----|---------|---------|
-| `costoTotal` en turnos no proratea por horas | Nómina incorrecta | `turnos.html:325` |
-| CORS abierto a todos los orígenes | Seguridad baja | `api/index.js:12` |
-| PINs de gerentes en plaintext en Redis | Seguridad baja | `api/index.js:~372` |
-| Rate limiting no cross-instance en Vercel serverless | Seguridad baja | `api/index.js:86` |
-| Eliminar proyecto `instinto-pos` huérfano en Vercel | Limpieza | Vercel → Settings → Delete |
-
----
-
-## PARA CONTINUAR
-
 ```bash
+cd ~/Desktop/instinto-pos
 npm start
-# Verificar en http://localhost:3001
+# http://localhost:3001
 ```
 
-Dos tests rápidos:
-1. **Sincronización:** Abre 2 navegadores → Mesero agrega comanda → Caja la ve en <100ms
-2. **Precios:** Admin edita precio → Guarda → Recargar → Precio se mantiene
-
-Ver: `TESTING_GUIDE.md` para 6 escenarios completos de testing
-
+Tests rápidos de sanidad:
+1. **Sync:** 2 navegadores → mesero agrega comanda → caja la ve en <100ms
+2. **Cobro mixto:** Mesa $300, tarjeta $100 → propina 15% debe ser $45 (no $15)
+3. **Reportes:** `reportes.html` → Forma de pago debe mostrar Efectivo/Tarjeta/Débito reales (no todo "Efectivo")
+4. **Turnos:** Costo estimado debe subir gradualmente conforme pasan las horas (no mostrar salario completo desde el inicio)
