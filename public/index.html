@@ -398,7 +398,6 @@ body { font-family: system-ui, -apple-system, sans-serif; background: #f5f5f3; m
       <div class="pago-opt" id="pagoDebito" onclick="selPago(this,'Débito')">💳 Débito</div>
       <div class="pago-opt" id="pagoCredito" onclick="selPago(this,'Crédito')">💳 Crédito</div>
       <div class="pago-opt" id="pagoAmex" onclick="selPago(this,'Amex')">🟣 Amex</div>
-      <div class="pago-opt" id="pagoTransferencia" onclick="selPago(this,'Transferencia')">📲 Transferencia</div>
       <div class="pago-opt" id="pagoMixto" onclick="selPago(this,'Mixto')">🔀 Mixto</div>
     </div>
     <div id="mixtoSection" style="display:none;margin-bottom:12px;">
@@ -794,7 +793,6 @@ body { font-family: system-ui, -apple-system, sans-serif; background: #f5f5f3; m
       <div class="pago-opt" onclick="selEditPago(this,'Débito')">💳 Débito</div>
       <div class="pago-opt" onclick="selEditPago(this,'Crédito')">💳 Crédito</div>
       <div class="pago-opt" onclick="selEditPago(this,'Amex')">🟣 Amex</div>
-      <div class="pago-opt" onclick="selEditPago(this,'Transferencia')">📲 Transferencia</div>
     </div>
     <button class="btn btn-dark" onclick="guardarEdicionVenta()">✓ Guardar cambio</button>
     <button class="btn btn-outline" onclick="cerrarModal('modalEditVenta')">Cancelar</button>
@@ -820,7 +818,6 @@ body { font-family: system-ui, -apple-system, sans-serif; background: #f5f5f3; m
       <div class="pago-opt" onclick="selPagoModal(this,'Débito')">💳 Débito</div>
       <div class="pago-opt" onclick="selPagoModal(this,'Crédito')">💳 Crédito</div>
       <div class="pago-opt" onclick="selPagoModal(this,'Amex')">🟣 Amex</div>
-      <div class="pago-opt" onclick="selPagoModal(this,'Transferencia')">📲 Transferencia</div>
       <div class="pago-opt" onclick="selPagoModal(this,'Mixto')">🔀 Mixto</div>
     </div>
     </div>
@@ -1464,6 +1461,7 @@ async function cargarDatos(esRecarga){
 }
 
 async function guardar(){
+  _guardandoAhora=true;
   // Write-through: siempre mantener localStorage actualizado como snapshot offline
   try{
     localStorage.setItem('i_cmd',JSON.stringify(comandas));
@@ -1499,6 +1497,8 @@ async function guardar(){
       toast('⚠ Error de red — guardado localmente. Reintentando...');
     }
     console.warn('Error al guardar en API:', e.message);
+  } finally {
+    _guardandoAhora=false;
   }
 }
 
@@ -1511,6 +1511,7 @@ function setSyncDot(on){
 let _syncConn=null;
 let _pendingSync=false;
 let _syncRetryTimer=null;
+let _guardandoAhora=false; // Bloquea sync mientras guardar() tiene un POST en vuelo
 
 // Iniciar conexión de sync: WebSocket si está disponible, sino SSE
 async function initSync(){
@@ -1570,8 +1571,8 @@ async function handleSyncEvent(msg){
   if(!msg.type||!navigator.onLine)return;
   setSyncDot(true);
 
-  // Si estás creando/editando una comanda: sincroniza en background sin recargar UI
-  if(currentItems.length>0||editandoId){
+  // Si estás creando/editando una comanda, o hay un POST en vuelo: sincroniza en background sin recargar UI
+  if(currentItems.length>0||editandoId||_guardandoAhora){
     if(!_pendingSync){
       _pendingSync=true;
       console.log('🔄 Sync en background (no interrumpemos edición)');
@@ -1605,8 +1606,9 @@ setInterval(()=>{
   if((ventas.length||comandas.length)&&navigator.onLine) guardar().catch(()=>{});
 },300000);
 
-// Polling de seguridad cada 15s — SSE en Vercel serverless no cruza instancias
+// Fallback polling (solo si sync no disponible): cada 30s
 setInterval(async()=>{
+  if(_syncConn)return; // Si tenemos conexión real, no polllear
   try{
     const r=await fetch('/api/lastUpdate');
     if(!r.ok)throw new Error('HTTP '+r.status);
@@ -1614,7 +1616,7 @@ setInterval(async()=>{
     if(d.error)throw new Error('offline');
     const{ts}=d;
     if(ts>ultimaActualizacion&&ultimaActualizacion>0){
-      if(currentItems.length===0&&!editandoId){
+      if(currentItems.length===0&&!editandoId&&!_guardandoAhora){
         ultimaActualizacion=ts;
         await cargarDatos(true);
         renderAbiertas();
@@ -1626,7 +1628,7 @@ setInterval(async()=>{
     }
     setSyncDot(true);
   }catch(e){setSyncDot(false);}
-},15000);
+},30000);
 
 // Iniciar sync al cargar
 window.addEventListener('load',()=>{initSync();});
@@ -3753,7 +3755,7 @@ function renderAdmin(){
   }
 
   // ── FORMAS DE PAGO ──
-  const pagColors={'Efectivo':'#0D2A5E','Débito':'#2d7a2d','Crédito':'#e67e22','Amex':'#6366f1','Tarjeta':'#F5A020','Transferencia':'#0891b2','Mixto':'#4A90C4'};
+  const pagColors={'Efectivo':'#0D2A5E','Débito':'#2d7a2d','Crédito':'#e67e22','Amex':'#6366f1','Tarjeta':'#F5A020','Mixto':'#4A90C4'};
   document.getElementById('adminPago').innerHTML=total?Object.entries(metodos).sort((a,b)=>b[1].t-a[1].t).map(([m,d])=>{
     const pct=Math.round(d.t/total*100),color=pagColors[m]||'#888';
     return`<div style="margin-bottom:14px;">
@@ -4673,7 +4675,7 @@ ${!isOneDay&&porDia.length>1?`
     <h2>Formas de pago</h2>
     ${Object.entries(metodos).sort((a,b)=>b[1].t-a[1].t).map(([m,d])=>{
       const pct=total?Math.round(d.t/total*100):0;
-      const colors={'Efectivo':'#0D2A5E','Débito':'#2d7a2d','Crédito':'#e67e22','Amex':'#6366f1','Tarjeta':'#F5A020','Transferencia':'#0891b2','Mixto':'#4A90C4'};
+      const colors={'Efectivo':'#0D2A5E','Débito':'#2d7a2d','Crédito':'#e67e22','Amex':'#6366f1','Tarjeta':'#F5A020','Mixto':'#4A90C4'};
       return`<div style="margin-bottom:14px;">
         <div style="display:flex;justify-content:space-between;margin-bottom:4px;">
           <span style="font-weight:600;">${m}</span>
