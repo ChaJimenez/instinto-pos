@@ -1,7 +1,7 @@
 # HANDOFF — POS INSTINTO
-**Última actualización:** 19 junio 2026 (tarde)
+**Última actualización:** 25 junio 2026
 **Rama:** `main` · Deploy automático en Vercel al hacer push
-**Commit activo:** `76d64a3`
+**Commit activo:** `9084453`
 
 ---
 
@@ -138,52 +138,6 @@ Comandos rápidos:
 
 ---
 
-## 🆕 LO QUE SE HIZO HOY ✅ (23 junio 2026 — sesión noche)
-
-### Reporte Completo — 8 KPIs + 4 Secciones Nuevas
-**Problema:** El reporte era muy básico (solo ingresos, cuentas, ticket prom., mejor día)  
-**Fix:** Reescritura completa de `reportes.html` + expansión de `/api/reportes`
-
-**API (`api/index.js`):**
-- ✅ `resumen` ampliado: propinas, cortesías, descuentos, ventasLocales, ventasDelivery, mejorHora, cancelaciones
-- ✅ Nueva aggregación `porDiaSemana` (Dom–Sáb, qué día vende más)
-- ✅ Nueva aggregación `porMesa` (solo mesas locales, excluye delivery)
-- ✅ Nueva aggregación `porCortesia` (qué platillos se regalan más)
-- ✅ `porMesero` ahora incluye cortesías y propinas por mesero
-- ✅ Lee `v.pago` (campo real) en lugar de solo `v.formaPago`
-- ✅ Normaliza "Mixto ($X ef / $Y tj)" → categoría "Mixto"
-
-**UI (`public/reportes.html`):**
-- ✅ 8 KPIs en 2 filas: Ingresos · Cuentas · Ticket · Mejor día / Propinas · Cortesías · Descuentos · Hora pico
-- ✅ Sección nueva: **Ventas por día de semana** (bar chart Dom–Sáb, marca el dominante)
-- ✅ Sección nueva: **Ventas por mesa** (bar chart + tabla con ticket prom. por mesa)
-- ✅ Sección nueva: **Cortesías y descuentos** (pills de totales + top platillos en cortesía)
-- ✅ Hora: heatmap de densidad + barras de ingreso por hora debajo
-- ✅ Mesero: tabla ahora incluye columnas Cortesías y Propinas
-- ✅ Productos: columna % del total
-- ✅ Export CSV incluye todas las secciones nuevas
-
-**Commits:**
-- `136d53e` feat: reporte completo con 8 KPIs, 4 secciones nuevas y análisis profundo
-
----
-
-### Transferencia como Forma de Pago
-**Problema:** Solo había Efectivo/Débito/Crédito/Amex/Mixto — sin opción para SPEI/CoDi  
-**Fix:** Botón 📲 Transferencia agregado en los 3 flujos de cobro
-
-- ✅ Botón en pantalla nueva comanda (entre Amex y Mixto)
-- ✅ Botón en modal cobrar mesa
-- ✅ Botón en modal editar venta cerrada
-- ✅ Color teal `#0891b2` en mapas de colores (admin panel + reporte turno)
-- ✅ No suma a `tjTotal` (no es tarjeta), no muestra propina ni sección mixto
-- ✅ Reporte ya la separa automáticamente (leía `v.pago` desde antes)
-
-**Commit:**
-- `2d76e7b` feat: agregar Transferencia como forma de pago en ventas
-
----
-
 ## 🆕 LO QUE SE HIZO HOY ✅ (23 junio 2026 — sesión tarde)
 
 ### Sincronización en Tiempo Real — WebSocket + SSE + Fallback Polling
@@ -247,13 +201,74 @@ Comandos rápidos:
 |-----|---------|--------|-----------------|
 | ✅ Comandas se pierden en caja | CRÍTICO | RESUELTO | WebSocket sync |
 | ✅ Precios vuelven al original | CRÍTICO | RESUELTO | localStorage + Redis TTL |
-| ✅ Reporte demasiado simple | Operativo | RESUELTO | 8 KPIs + 4 secciones nuevas |
-| ✅ Sin opción Transferencia | Operativo | RESUELTO | Botón en los 3 flujos de cobro |
 | `costoTotal` en turnos no proratea | Dato incorrecto | PENDIENTE | `turnos.html:325` |
 | CORS abierto a todos | Seguridad baja | PENDIENTE | `api/index.js:12` |
 | PINs gerentes plaintext | Seguridad baja | PENDIENTE | `api/index.js:~372` |
 | Rate limiting no cross-instance | Seguridad baja | PENDIENTE | `api/index.js:86` |
 | Eliminar `instinto-pos` en Vercel | Limpieza | PENDIENTE | Vercel → Settings → Delete |
+
+---
+
+---
+
+## LO QUE SE HIZO HOY ✅ (25 junio 2026)
+
+### Auditoría exhaustiva del POS — 20 bugs identificados
+
+Se revisó el sistema completo (frontend, backend, SW). Bugs por severidad:
+- **5 CRÍTICOS** — dinero en riesgo directo
+- **10 ALTOS** — operación o dinero con menor frecuencia
+- **5 MEDIOS/BAJOS** — rendimiento y seguridad física
+
+### Fix: Productos que se borraban de las comandas (bug reincidente)
+**Causa raíz:** Triple race condition — polling de 30s + SSE ejecutaban `cargarDatos()` mientras había un POST en vuelo a `/api/guardar`, pisando comandas recién creadas con datos viejos del servidor. Con 2 tablets, la segunda podía sobreescribir comandas de la primera.
+
+**Fixes aplicados (commit `c86a686`):**
+- ✅ Flag `_guardandoAhora`: bloquea polling y SSE mientras hay POST en vuelo
+- ✅ Backend merge: en lugar de reemplazar `cmd`, une las comandas del cliente con las que solo tiene el servidor (otra tablet)
+- ✅ Ventana de conflicto ampliada de 1s → 30s
+
+### Fix: Propinas en pago mixto (BUG-6)
+**Causa:** Propina se calculaba como % del monto de tarjeta, no del total de la cuenta. Mesa $300: $100 tarjeta → propina 15% salía $15 en lugar de $45.
+
+**Fix (commit `9084453`):**
+- ✅ `selPropinaM()` — ahora usa `totales().cobrable` (flujo ticket builder)
+- ✅ `selPropinaMMod()` — ahora usa `calcDescModal(c).cobrable` (flujo modal cobro)
+- Impacto: propinas de meseros ahora correctas para el corte semanal
+
+### Fix: Token de sesión expiraba sin renovarse (BUG-9)
+**Causa:** Token TTL = 12h. Tablets sin reiniciar en turno largo → 401 silencioso → ventas no subían al servidor.
+
+**Fix (commit `9084453`):**
+- ✅ Manejo explícito de 401: limpia token, muestra PIN gate, reintenta guardado
+- ✅ Verificación proactiva cada 10 min: renueva 2 min antes de expirar
+
+### Fix: Sync de otra tablet nunca se aplicaba (BUG-8)
+**Causa:** `_pendingSyncData` se capturaba mientras se editaba, pero nunca se consumía. Dos tablets podían cobrar la misma mesa.
+
+**Fix (commit `9084453`):**
+- ✅ Al terminar de editar (`resetForm()`), si hay `_pendingSyncData`, se aplica inmediatamente
+
+---
+
+## BUGS PENDIENTES — PRÓXIMA SESIÓN 🔜
+
+### Ronda 2 (impacto operativo)
+| Bug | Impacto | Archivo |
+|-----|---------|---------|
+| BUG-1/17: Descuento empleado incluye bebidas/extras sin categoría | Descuento incorrecto | `index.html` ~línea 2024 |
+| BUG-14: Lista de gerentes puede estar vacía al abrir cobro | Dropdown vacío | `index.html` ~línea 1751 |
+| BUG-20: SSE no detecta conexión muerta, fallback polling queda bloqueado | Desync silencioso | `index.html` ~línea 1553 |
+| BUG-11: Cancelación completa no pone `_loggedCanc` — puede duplicar en reporte | Reporte incorrecto | `index.html` ~línea 2628 |
+
+### Pendientes anteriores (infraestructura)
+| Bug | Impacto | Archivo |
+|-----|---------|---------|
+| `costoTotal` en turnos no proratea por horas | Nómina incorrecta | `turnos.html:325` |
+| CORS abierto a todos los orígenes | Seguridad baja | `api/index.js:12` |
+| PINs de gerentes en plaintext en Redis | Seguridad baja | `api/index.js:~372` |
+| Rate limiting no cross-instance en Vercel serverless | Seguridad baja | `api/index.js:86` |
+| Eliminar proyecto `instinto-pos` huérfano en Vercel | Limpieza | Vercel → Settings → Delete |
 
 ---
 
