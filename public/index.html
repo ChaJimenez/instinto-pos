@@ -1520,6 +1520,8 @@ let _syncConn=null;
 let _pendingSync=false;
 let _syncRetryTimer=null;
 let _guardandoAhora=false; // Bloquea sync mientras guardar() tiene un POST en vuelo
+let _sseHeartbeatTimer=null;
+let _sseLastSeen=0;
 
 // Iniciar conexión de sync: WebSocket si está disponible, sino SSE
 async function initSync(){
@@ -1552,18 +1554,33 @@ async function initSync(){
 function initSSE(){
   if(_syncConn) return;
   try{
-    // BUG #7 FIX: Pasar token en query param (EventSource no soporta headers custom)
+    // Pasar token en query param (EventSource no soporta headers custom)
     const sseUrl=`/api/sync?token=${encodeURIComponent(API_KEY)}&t=${Date.now()}`;
     const sse=new EventSource(sseUrl);
+    _sseLastSeen=Date.now();
+
+    // Heartbeat: si no llega ningún evento en 45s, asumir conexión muerta y reconectar
+    if(_sseHeartbeatTimer) clearInterval(_sseHeartbeatTimer);
+    _sseHeartbeatTimer=setInterval(()=>{
+      if(Date.now()-_sseLastSeen>45000){
+        clearInterval(_sseHeartbeatTimer);_sseHeartbeatTimer=null;
+        sse.close();_syncConn=null;scheduleReconnect();
+      }
+    },15000);
+
     sse.onmessage=(e)=>{
+      _sseLastSeen=Date.now();
       if(e.data.startsWith(':'))return; // comentarios/heartbeat
       try{
         const msg=JSON.parse(e.data);
         handleSyncEvent(msg);
       }catch(err){}
     };
-    sse.onerror=()=>{sse.close();scheduleReconnect();};
-    _syncConn={close:()=>sse.close()};
+    sse.onerror=()=>{
+      clearInterval(_sseHeartbeatTimer);_sseHeartbeatTimer=null;
+      sse.close();scheduleReconnect();
+    };
+    _syncConn={close:()=>{clearInterval(_sseHeartbeatTimer);_sseHeartbeatTimer=null;sse.close();}};
     setSyncDot(true);
   }catch(e){console.warn('SSE error:',e.message);scheduleReconnect();}
 }
@@ -1792,6 +1809,7 @@ function pedirGerente(titulo,desc,onSuccess,onCancel){
   document.getElementById('gerentePin').value='';
   document.getElementById('gerenteError').textContent='';
   _actualizarSelectGerente();
+  if(!gerentesCache.length) cargarGerentes(); // recarga si cache vacía (inicio de sesión o fallo previo)
   document.getElementById('modalGerente').classList.add('open');
   setTimeout(()=>document.getElementById('gerenteNombre').focus(),100);
 }
@@ -2038,7 +2056,7 @@ function totales(){
   currentItems.forEach(it=>{const v=it.p*it.q;if(it.cancelado)canc+=v;else if(it.cortesia)cort+=v;else bruto+=v;});
   let descValor=0;
   if(currentDescuento.tipo==='empleado'){
-    const subAlim=currentItems.filter(it=>!it.cancelado&&!it.cortesia&&!BARRA_CATS_FRONT.includes(it.cat)).reduce((s,it)=>s+it.p*it.q,0);
+    const subAlim=currentItems.filter(it=>!it.cancelado&&!it.cortesia&&it.cat&&!BARRA_CATS_FRONT.includes(it.cat)).reduce((s,it)=>s+it.p*it.q,0);
     descValor=Math.round(subAlim*50)/100;
   } else if(currentDescuento.tipo==='pct'){
     const pct=parseFloat(document.getElementById('descPct')?.value)||0;
@@ -2648,6 +2666,8 @@ function cancelarComandaCompleta(id){
   if(!confirm(`¿Cancelar TODA la mesa ${c.mesa}? Se registra pero NO se cobra.\nSe pedirá autorización de gerente.`))return;
   pedirGerente('Cancelar mesa completa',`Mesa ${c.mesa} · ${c.mesero} · $${c.total.toLocaleString()} — autorización requerida.`,(gerente)=>{
     cancelaciones.push({id:Date.now(),mesa:c.mesa,mesero:c.mesero,items:JSON.parse(JSON.stringify(c.items.filter(it=>!it.cancelado))),valor:c.total,hora:new Date().toLocaleTimeString('es-MX',{hour:'2-digit',minute:'2-digit'}),fecha:new Date().toLocaleDateString('es-MX'),tipo:'mesa_completa',autorizadoPor:gerente});
+    // Marcar items de currentItems como ya logueados si el usuario estaba editando esta mesa
+    if(editandoId===id){currentItems.forEach(it=>{it._loggedCanc=true;});}
     comandas=comandas.filter(x=>x.id!==id);guardar();renderAbiertas();toast(`Mesa ${c.mesa} cancelada — autorizado por ${gerente} ✓`);
   });
 }
