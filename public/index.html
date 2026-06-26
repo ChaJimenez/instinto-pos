@@ -1407,18 +1407,29 @@ async function cargarDatos(esRecarga){
       ventas = mergedVentas;
       meseros = safeMes;
       cancelaciones = d.canc || [];
-      // BUG #3 FIX: NO pisar servidor corrupto — validar antes de merge
+      // Mapa local por id para poder comparar versiones comanda a comanda
+      const _localCmdById={};
+      comandas.forEach(c=>{_localCmdById[c.id]=c;});
+      // Helper: para cada comanda del servidor, preferir versión local si tiene más ítems
+      // (evita pisarle al mesero productos recién agregados cuando el servidor tiene versión vieja)
+      const _preferirLocal=(sc)=>{
+        const lc=_localCmdById[sc.id];
+        if(lc&&(lc.items||[]).length>(sc.items||[]).length){return lc;}
+        return sc;
+      };
+      // NO pisar servidor corrupto — validar antes de merge
       if(cleanServerCmd.length===0&&serverCmd.length>0&&soloLocales.length===0){
         console.error('⚠ Servidor devolvió datos vacíos pero tenía comandas. NO pisamos.');
         comandas=comandas; // Mantener locales
       }else if(soloLocales.length || localOnlyVentas.length || serverMes.length===0&&safeMes.length>0){
         if(soloLocales.length) console.warn('🛡 Protegidas',soloLocales.length,'comanda(s) local(es):',soloLocales.map(c=>'Mesa '+c.mesa));
         if(serverMes.length===0&&safeMes.length>0) console.warn('🛡 Meseros restaurados desde local — servidor los había perdido');
-        const merged=[...cleanServerCmd,...soloLocales];
+        const merged=[...cleanServerCmd.map(_preferirLocal),...soloLocales];
         comandas=merged;
-        await fetch('/api/guardar',{method:'POST',headers:{'Content-Type':'application/json','X-API-Key':API_KEY},body:JSON.stringify({cmd:merged,vta:ventas,mes:meseros,canc:cancelaciones})});
+        try{await fetch('/api/guardar',{method:'POST',headers:{'Content-Type':'application/json','X-API-Key':API_KEY},body:JSON.stringify({cmd:merged,vta:ventas,mes:meseros,canc:cancelaciones})});}catch(_){}
       } else {
-        comandas = cleanServerCmd;
+        // Usar servidor pero preservar ítems locales más recientes para cada comanda
+        comandas = cleanServerCmd.map(_preferirLocal);
       }
     } else {
       // Proteger ventas y comandas que solo están en localStorage (save falló por red)
@@ -1467,6 +1478,9 @@ async function cargarDatos(esRecarga){
 }
 
 async function guardar(){
+  // Guard: si ya hay un save en vuelo, marcar pendiente y salir (evita 2 saves simultáneos
+  // donde el finally del primero libera _guardandoAhora antes de que el segundo termine)
+  if(_guardandoAhora){window._pendingGuardar=true;return;}
   _guardandoAhora=true;
   // Write-through: siempre mantener localStorage actualizado como snapshot offline
   try{
@@ -1517,6 +1531,8 @@ async function guardar(){
     console.warn('Error al guardar en API:', e.message);
   } finally {
     _guardandoAhora=false;
+    // Si hubo un save pendiente mientras este estaba en vuelo, ejecutarlo ahora
+    if(window._pendingGuardar){window._pendingGuardar=false;setTimeout(()=>guardar().catch(()=>{}),100);}
   }
 }
 

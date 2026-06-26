@@ -119,6 +119,11 @@ inv:*              → inventarios (compartido con instinto-inventario)
 ### Sesión 26 jun 2026 — bug precios multi-tablet
 - **B27 ✅**: Cambios de precio no se propagaban a otros tablets. `POST /api/menu` ahora también escribe `i:menuUpdate` en Redis. `GET /api/lastUpdate` ahora retorna `{ts, menuTs}`. El polling cada 15s compara `menuTs` y llama `cargarMenuRemoto()` + `initMenu()` si detecta cambio — precios se sincronizan en ≤15s entre todos los dispositivos.
 
+### Sesión 26 jun 2026 — pérdida de comandas y productos (4ª vez reportado)
+- **B28 ✅ (productos desaparecen)**: En el handler de 409 de `guardar()`, se llamaba `cargarDatos(true)`. Dentro del merge, si una comanda ya existía en el servidor (aunque con ítems viejos), se pisaba con la versión del servidor y los ítems nuevos que el mesero había agregado se perdían. Fix: `_preferirLocal()` en el merge — si la versión local de una comanda tiene MÁS ítems que la del servidor, se usa la local.
+- **B29 ✅ (comandas/datos corruptos)**: `guardar()` no tenía guard de re-entrada. El auto-save de 5 min podía dispararse mientras ya había un `guardar()` en vuelo, creando 2 saves simultáneos. El `finally` del primero liberaba `_guardandoAhora=false` antes de que el segundo terminara, permitiendo que el polling interfiriera con datos parcialmente escritos. Fix: guard de re-entrada con flag `_pendingGuardar` — si ya hay un save en vuelo, el nuevo se encola y ejecuta al terminar el actual.
+- **B30 ✅ (crash silencioso)**: El `fetch` interno de sync dentro de `cargarDatos(true)` (cuando hay soloLocales) no tenía try-catch. Un 409 ahí propagaba el error y dejaba el estado en un limbo. Ahora envuelto en try-catch.
+
 ---
 
 ## BUGS PENDIENTES
