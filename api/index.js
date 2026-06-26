@@ -136,16 +136,18 @@ function requireAuth(req, res, next) {
 // ── Cargar todos los datos ──
 app.get('/api/datos', async (req, res) => {
   try {
-    const [cmd, vta, mes, canc, wal] = await Promise.all([
+    const [cmd, vta, mes, canc, wal, barraCatsStored] = await Promise.all([
       kv.get(KEYS.cmd),
       kv.get(KEYS.vta),
       kv.get(KEYS.mes),
       kv.get(KEYS.canc),
       walRead(),
+      kv.get('i:barra_cats'),
     ]);
-    // Fusionar WAL: cualquier cobro registrado llega aunque guardar() haya fallado
     const vtaMerged = walMerge(vta, wal);
-    res.json({ cmd: cmd || [], vta: vtaMerged, mes: mes || [], canc: canc || [] });
+    // barraCats: configurable desde Redis; si no existe, usa la lista por defecto
+    const barraCats = Array.isArray(barraCatsStored) ? barraCatsStored : BARRA_CATS;
+    res.json({ cmd: cmd || [], vta: vtaMerged, mes: mes || [], canc: canc || [], barraCats });
   } catch (e) {
     console.error('Error /api/datos:', e);
     res.status(500).json({ error: "Error de conexión" });

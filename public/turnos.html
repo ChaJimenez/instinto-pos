@@ -377,7 +377,15 @@ function cargarResumen() {
 }
 
 // ── Gestión de empleados (admin) ──
-function cargarEmpleadosAdmin() {
+async function cargarEmpleadosAdmin() {
+  // Siempre traer datos frescos del servidor al abrir el panel — evita editar datos viejos
+  try {
+    const r = await fetch('/api/empleados');
+    if (r.ok) {
+      const d = await r.json();
+      if (Array.isArray(d.empleados)) empleados = d.empleados;
+    }
+  } catch(_) {}
   renderEmpListAdmin();
 }
 

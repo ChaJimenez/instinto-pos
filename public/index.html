@@ -1361,7 +1361,7 @@ function aplicarPermisoRol(){
 let editVentaId=null, editPagoAct='';
 let currentDescuento={tipo:null,pct:0,valor:0};
 let modalDescuento={tipo:null,pct:0,valor:0};
-const BARRA_CATS_FRONT=['Refrescos','Cervezas','Cervezas Artesanales','Preparados','Cafés'];
+let BARRA_CATS_FRONT=['Refrescos','Cervezas','Cervezas Artesanales','Preparados','Cafés']; // se actualiza desde servidor
 
 // Formatea propinas con decimales si los tiene (ej: 67.9, no 68)
 function fmtProp(n){
@@ -1384,6 +1384,8 @@ async function cargarDatos(esRecarga){
     // Detectar respuesta offline del Service Worker (devuelve HTTP 200 con {error:'offline'})
     // Si no se detecta, cargarDatos pisaría comandas/ventas con arrays vacíos y los escribiría en localStorage
     if (d.error === 'offline') throw new Error('Sin conexión (SW offline)');
+    // Sincronizar categorías de barra con el servidor (afecta a qué impresora va cada ítem)
+    if (Array.isArray(d.barraCats) && d.barraCats.length) BARRA_CATS_FRONT = d.barraCats;
     const serverCmd = d.cmd || [];
     const serverVta = d.vta || [];
     // Protección de meseros: nunca pisar con array vacío
@@ -1419,24 +1421,27 @@ async function cargarDatos(esRecarga){
         comandas = cleanServerCmd;
       }
     } else {
-      // Proteger ventas que guardaron en local pero cuyo POST a /api/guardar falló (red inestable, timeout)
-      // Sin este merge, al recargar la página se perderían para siempre
+      // Proteger ventas y comandas que solo están en localStorage (save falló por red)
       const _localVta=[];
       try{const _lv=localStorage.getItem('i_vta');if(_lv)JSON.parse(_lv).forEach(v=>_localVta.push(v));}catch(_){}
+      const _localCmd=[];
+      try{const _lc=localStorage.getItem('i_cmd');if(_lc)JSON.parse(_lc).forEach(c=>_localCmd.push(c));}catch(_){}
       const _srvVtaIds=new Set(serverVta.map(v=>v.id));
       const _localOnly=_localVta.filter(v=>!_srvVtaIds.has(v.id));
       const _closedLocally = new Set(_localVta.map(v => v.id));
-      comandas = serverCmd.filter(c => !_closedLocally.has(c.id));
+      const _filteredServer = serverCmd.filter(c => !_closedLocally.has(c.id));
+      const _serverCmdIds = new Set(_filteredServer.map(c => c.id));
+      // Recuperar comandas locales abiertas que el servidor no tiene (save no llegó)
+      const _localOpenOnly = _localCmd.filter(c => !_serverCmdIds.has(c.id) && !_closedLocally.has(c.id));
+      comandas = [..._filteredServer, ..._localOpenOnly];
       ventas = _localOnly.length?[...serverVta,..._localOnly]:serverVta;
       meseros = safeMes;
       cancelaciones = d.canc || [];
-      const _needsSync=_localOnly.length>0||(serverMes.length===0&&safeMes.length>0);
-      if(_localOnly.length){
-        console.warn('🛡 Recuperadas',_localOnly.length,'venta(s) de localStorage que no estaban en el servidor');
-        toast(`🛡 ${_localOnly.length} venta(s) recuperada(s) — se guardaron localmente pero no habían llegado al servidor`);
-      }
-      if(serverMes.length===0&&safeMes.length>0){
-        console.warn('🛡 Meseros restaurados desde localStorage — restaurando en servidor...');
+      const _needsSync=_localOnly.length>0||_localOpenOnly.length>0||(serverMes.length===0&&safeMes.length>0);
+      if(_localOnly.length) toast(`🛡 ${_localOnly.length} venta(s) recuperada(s) del respaldo local`);
+      if(_localOpenOnly.length){
+        console.warn('🛡 Recuperadas',_localOpenOnly.length,'comanda(s) abiertas de localStorage');
+        toast(`🛡 ${_localOpenOnly.length} comanda(s) recuperada(s) del respaldo local`);
       }
       if(_needsSync){
         fetch('/api/guardar',{method:'POST',headers:{'Content-Type':'application/json','X-API-Key':API_KEY},body:JSON.stringify({cmd:comandas,vta:ventas,mes:meseros,canc:cancelaciones})}).catch(()=>{});
@@ -1878,10 +1883,11 @@ function _updatePagoVisibility(){
 }
 function setCanal(canal){
   currentCanal=canal;
+  // Persistir en localStorage: otras tablets (y recargas) arrancan con el mismo canal
+  try{localStorage.setItem('i_canal',canal||'');}catch(_){}
   _updateCanalUI();
   _updatePagoVisibility();
   if(!canal)document.getElementById('deliveryApps').classList.remove('open');
-  // Refrescar precios del menú visible
   const activeCat=document.querySelector('.cat-btn.active')?.textContent;
   if(activeCat)renderPlatillos(activeCat);
 }
@@ -5023,6 +5029,8 @@ cargarMenuRemoto().then(()=>{initMenu();renderTicket();});
 cargarDatos().then(()=>{
   renderMeseroSelect();
   renderAbiertas();
+  // Restaurar canal delivery del localStorage (persiste entre recargas y tablets del mismo origen)
+  try{const c=localStorage.getItem('i_canal');if(c)setCanal(c);}catch(_){}
   mostrarLockScreen(); // Pantalla de bloqueo inicial — mesero o gerente selecciona quién es
 });
 </script>
