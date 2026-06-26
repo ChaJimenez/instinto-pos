@@ -103,9 +103,9 @@ function verifyToken(t) {
 
 // ── Rate limiting en Redis (cross-instance) ──
 // Ventana fija por minuto de reloj — adecuada para prevenir brute-force en endpoints de auth
-async function checkRateLimit(ip, max = 10, windowSec = 60) {
+async function checkRateLimit(ip, max = 30, windowSec = 60, route = '') {
   const win = Math.floor(Date.now() / (windowSec * 1000));
-  const key = `rl:${Buffer.from(ip).toString('base64url').slice(0,16)}:${win}`;
+  const key = `rl:${Buffer.from(ip + route).toString('base64url').slice(0,20)}:${win}`;
   try {
     const count = await kv.incr(key);
     if (count === 1) await kv.expire(key, windowSec + 5);
@@ -449,7 +449,7 @@ app.post('/api/requeue', requireAuth, async (req, res) => {
 // ── Auth con PIN → devuelve token de sesión firmado ──
 app.post('/api/auth', async (req, res) => {
   const ip = getIp(req);
-  if (await checkRateLimit(ip, 10, 60)) return res.status(429).json({ error: 'Demasiados intentos. Espera 1 minuto.' });
+  if (await checkRateLimit(ip, 30, 60, '/api/auth')) return res.status(429).json({ error: 'Demasiados intentos. Espera 1 minuto.' });
   const { pin } = req.body || {};
   if (!PIN || String(pin) !== String(PIN)) return res.status(401).json({ error: 'PIN incorrecto' });
   res.json({ token: signToken(), exp: Date.now() + TOKEN_TTL });
@@ -458,7 +458,7 @@ app.post('/api/auth', async (req, res) => {
 // ── Validar PIN (sin exponer el PIN en el cliente) ──
 app.post('/api/validate-pin', async (req, res) => {
   const ip = getIp(req);
-  if (await checkRateLimit(ip, 10, 60)) return res.status(429).json({ ok: false, error: 'Demasiados intentos' });
+  if (await checkRateLimit(ip, 30, 60, '/api/validate-pin')) return res.status(429).json({ ok: false, error: 'Demasiados intentos' });
   const { pin } = req.body || {};
   if (pin === PIN) res.json({ ok: true });
   else res.status(401).json({ ok: false });
@@ -478,7 +478,7 @@ app.get('/api/gerentes', async (req, res) => {
 // Validar PIN de un gerente específico
 app.post('/api/gerentes/validar', async (req, res) => {
   const ip = getIp(req);
-  if (await checkRateLimit(ip, 10, 60)) return res.status(429).json({ ok: false });
+  if (await checkRateLimit(ip, 30, 60, '/api/gerentes/validar')) return res.status(429).json({ ok: false });
   try {
     const { nombre, pin } = req.body || {};
     if (!nombre || !pin) return res.json({ ok: false });
