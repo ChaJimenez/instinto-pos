@@ -95,7 +95,7 @@
       <button onclick="validarAdmin()">Entrar</button>
     </div>
     <div class="pin-error" id="pinError"></div>
-    <div id="adminContent" style="display:none;">
+    <div id="adminContent" style="display:none;" onclick="resetAdminTimeout()">
       <div class="tabs">
         <button class="tab-btn active" onclick="switchTab('resumen')">Resumen del día</button>
         <button class="tab-btn" onclick="switchTab('empleados')">Empleados</button>
@@ -153,6 +153,23 @@ let empleados = [];
 let turnosHoy = [];
 let accionPendiente = null;
 let adminAutenticado = false;
+let _adminTimer = null;
+const ADMIN_TIMEOUT = 5 * 60 * 1000; // 5 min sin actividad → cierra sesión admin
+
+function resetAdminTimeout() {
+  if (!adminAutenticado) return;
+  clearTimeout(_adminTimer);
+  _adminTimer = setTimeout(cerrarSesionAdmin, ADMIN_TIMEOUT);
+}
+function cerrarSesionAdmin() {
+  adminAutenticado = false;
+  clearTimeout(_adminTimer);
+  _adminTimer = null;
+  document.getElementById('adminContent').style.display = 'none';
+  document.getElementById('pinRow').style.display = 'flex';
+  document.getElementById('pinInput').value = '';
+  document.getElementById('pinError').textContent = 'Sesión cerrada por inactividad';
+}
 
 function iniciales(nombre) {
   return nombre.trim().split(' ').map(p=>p[0]).join('').toUpperCase().slice(0,2);
@@ -301,6 +318,7 @@ async function validarAdmin() {
       document.getElementById('pinRow').style.display = 'none';
       document.getElementById('pinError').textContent = '';
       document.getElementById('adminContent').style.display = 'block';
+      resetAdminTimeout();
       cargarResumen();
       cargarEmpleadosAdmin();
     } else {

@@ -1487,7 +1487,11 @@ async function guardar(){
       return;
     }
     if(_gResp.status===401){
-      // Token expirado — renovar sesión y reintentar
+      // Token expirado — cerrar cualquier modal que bloquee el PIN gate, luego renovar
+      ['modalCobrar','modalGerente','modalPinGenerico','modalAdminPin','modalBusqueda','modalGasto','modalMesaOpciones','modalConfirmarCobro','modalAbrirMesa','modalInvAlerta','modalEditVenta'].forEach(id=>{
+        const el=document.getElementById(id);
+        if(el)el.classList.remove('open');
+      });
       sessionStorage.removeItem('_pt');sessionStorage.removeItem('_pte');
       API_KEY='';_tokExp=0;
       await _showPinGate();

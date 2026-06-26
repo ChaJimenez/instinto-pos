@@ -45,10 +45,11 @@ async function walRead() {
 }
 
 function walMerge(vta, wal) {
-  if (!wal || !wal.length) return vta || [];
-  const ids = new Set((vta || []).map(v => v.id));
-  const nuevo = wal.filter(v => !ids.has(v.id));
-  return nuevo.length ? [...(vta || []), ...nuevo] : (vta || []);
+  const safeVta = Array.isArray(vta) ? vta : [];
+  if (!wal || !wal.length) return safeVta;
+  const ids = new Set(safeVta.map(v => v.id));
+  const nuevo = wal.filter(v => v && v.id && !ids.has(v.id));
+  return nuevo.length ? [...safeVta, ...nuevo] : safeVta;
 }
 
 // Clave de snapshot horario: i:vta:bak:2026-06-17T14
@@ -66,7 +67,11 @@ function normalizarFecha(v) {
     }
     return f.slice(0, 10);
   }
-  return new Date(v.id).toLocaleDateString('sv-SE', { timeZone: 'America/Mexico_City' });
+  const d = new Date(Number(v.id) || v.id);
+  if (isNaN(d.getTime())) {
+    return new Date().toLocaleDateString('sv-SE', { timeZone: 'America/Mexico_City' });
+  }
+  return d.toLocaleDateString('sv-SE', { timeZone: 'America/Mexico_City' });
 }
 const PIN = process.env.PIN_ADMIN || '';
 const API_SECRET = process.env.API_SECRET || '';
@@ -148,7 +153,28 @@ app.get('/api/datos', async (req, res) => {
 });
 
 // ── Guardar todos los datos ──
+// Mutex en Redis: garantiza que solo una tablet escribe a la vez.
+// TTL de 5s: si la tablet muere a mitad del save, el lock se libera solo.
+const LOCK_KEY = 'i:guardar:lock';
+const LOCK_TTL_MS = 5000;
+async function acquireLock() {
+  const id = crypto.randomBytes(6).toString('hex');
+  const ok = await kv.set(LOCK_KEY, id, { nx: true, px: LOCK_TTL_MS });
+  return ok ? id : null;
+}
+async function releaseLock(id) {
+  try {
+    const cur = await kv.get(LOCK_KEY);
+    if (cur === id) await kv.del(LOCK_KEY);
+  } catch (_) {}
+}
+
 app.post('/api/guardar', requireAuth, async (req, res) => {
+  // Intentar adquirir lock — si otra tablet está guardando, devolver 409 para que reintente
+  const lockId = await acquireLock().catch(() => null);
+  if (!lockId) {
+    return res.status(409).json({ error: 'conflicto', reason: 'busy' });
+  }
   try {
     const { cmd, vta, mes, canc, ts: clientTs } = req.body;
     // Fusionar WAL: aunque la tablet esté desactualizada, ningún cobro se pierde
@@ -185,16 +211,29 @@ app.post('/api/guardar', requireAuth, async (req, res) => {
       kv.set(KEYS.mes, mes || []),
       kv.set(KEYS.canc, canc || []),
       kv.set(KEYS.ts, Date.now()),
-      kv.set(snapKey(), vtaMerged, { ex: 60 * 60 * 48 }), // expira en 48h
-      // Limpiar WAL fusionado: entradas desde 0 hasta walCount-1
-      walCount > 0 ? kv.ltrim(WAL_KEY, walCount, -1) : Promise.resolve(),
+      kv.set(snapKey(), vtaMerged, { ex: 60 * 60 * 48 }),
     ]);
+
+    // Limpiar WAL en bloque separado: si falla, no arruina el save principal
+    if (walCount > 0) {
+      kv.ltrim(WAL_KEY, walCount, -1).catch(async () => {
+        // Retry único si falla
+        await kv.ltrim(WAL_KEY, walCount, -1).catch(() => {});
+      });
+    }
+    // Safeguard: si WAL crece demasiado (acumulación por fallos reiterados), recortar
+    kv.llen(WAL_KEY).then(len => {
+      if (len > 200) kv.ltrim(WAL_KEY, len - 200, -1).catch(() => {});
+    }).catch(() => {});
+
     // Notificar a todos los clientes de cambios
     broadcastChange('sync', { cmd: mergedCmd.length, vta: vtaMerged.length });
-    res.json({ ok: true, walMerged: vtaMerged.length - (vta || []).length });
+    res.json({ ok: true, walMerged: vtaMerged.length - (Array.isArray(vta) ? vta.length : 0) });
   } catch (e) {
     console.error('Error /api/guardar:', e);
     res.status(500).json({ error: "Error de conexión" });
+  } finally {
+    releaseLock(lockId);
   }
 });
 
