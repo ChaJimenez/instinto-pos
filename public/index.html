@@ -4302,11 +4302,12 @@ function guardarMenuAdmin(){
       log86.push({ts,item:it.n,cat:it._cat,action:newActivo?'on':'off'});
     }
   });
-  pedirPin('Guardar menú','Ingresa el PIN de administrador para aplicar los cambios',async(pin)=>{
-    const btn=document.getElementById('btnGuardarMenu');
-    btn.disabled=true;btn.textContent='Guardando...';msg.textContent='';
+  // Guardar directamente con el token del gerente ya autenticado (sin pedir PIN de nuevo)
+  const btn=document.getElementById('btnGuardarMenu');
+  btn.disabled=true;btn.textContent='Guardando...';msg.textContent='';
+  (async()=>{
     try{
-      const r=await fetch('/api/menu',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({pin,categorias,extras,log86})});
+      const r=await fetch('/api/menu',{method:'POST',headers:{'Content-Type':'application/json','X-API-Key':API_KEY},body:JSON.stringify({categorias,extras,log86})});
       const d=await r.json();
       if(!r.ok||!d.ok){msg.style.color='#e24b4a';msg.textContent=d.error||'Error al guardar';}
       else{
@@ -4347,7 +4348,7 @@ function guardarMenuAdmin(){
       }
     }catch(e){msg.style.color='#e24b4a';msg.textContent='Error de conexión — reintenta';}
     btn.disabled=false;btn.textContent='💾 Guardar cambios';
-  });
+  })();
 }
 // ── EDITOR DE PRECIOS DELIVERY (por canal) ──
 const _CANAL_META={
@@ -4404,11 +4405,12 @@ function guardarMenuDelivery(canal){
       item.pDelivery[canal]=parseFloat(val);
     }
   });
-  pedirPin(`Guardar precios ${meta.label}`,'Ingresa el PIN de administrador',async(pin)=>{
-    msg.style.color='#888';msg.textContent='Guardando...';
+  // Guardar directamente con el token del gerente ya autenticado
+  msg.style.color='#888';msg.textContent='Guardando...';
+  (async()=>{
     try{
-      const r=await fetch('/api/menu',{method:'POST',headers:{'Content-Type':'application/json'},
-        body:JSON.stringify({pin,categorias:MENU,extras:EXTRAS,log86:[]})});
+      const r=await fetch('/api/menu',{method:'POST',headers:{'Content-Type':'application/json','X-API-Key':API_KEY},
+        body:JSON.stringify({categorias:MENU,extras:EXTRAS,log86:[]})});
       const d=await r.json();
       if(d.ok){
         // Guardar en localStorage como respaldo permanente
@@ -4422,7 +4424,7 @@ function guardarMenuDelivery(canal){
       }else{msg.style.color='#e24b4a';msg.textContent=d.error||'Error al guardar';}
     }catch(e){msg.style.color='#e24b4a';msg.textContent='Error de conexión — reintenta';}
     setTimeout(()=>{if(msg)msg.textContent='';},5000);
-  });
+  })();
 }
 
 function togglePanel86(){

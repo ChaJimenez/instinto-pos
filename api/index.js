@@ -621,7 +621,10 @@ app.get('/api/menu', async (req, res) => {
 app.post('/api/menu', async (req, res) => {
   try {
     const { pin, categorias, extras, log86 } = req.body || {};
-    if (pin !== PIN) return res.status(401).json({ error: 'PIN incorrecto' });
+    // Acepta token JWT (gerente ya autenticado en el Config tab) O PIN de admin
+    const token = req.headers['x-api-key'];
+    const tokenValid = token ? verifyToken(token) : false;
+    if (!tokenValid && pin !== PIN) return res.status(401).json({ error: 'PIN incorrecto' });
     if (!categorias || typeof categorias !== 'object') return res.status(400).json({ error: 'Formato inválido' });
     // PERSISTENCIA: TTL de 90 días para asegurar que no expire en cambios normales
     // Si el TTL es muy corto, menú se pierde cuando se reinicia Redis
