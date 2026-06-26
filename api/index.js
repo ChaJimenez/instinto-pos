@@ -174,7 +174,9 @@ app.post('/api/guardar', requireAuth, async (req, res) => {
     const clientIds = new Set(clientCmd.map(c => c.id));
     // Del servidor, conservar solo comandas que el cliente no tiene y que no están cobradas
     const serverOnly = serverCmd.filter(c => !clientIds.has(c.id) && !vtaIds.has(c.id));
-    const mergedCmd = [...clientCmd, ...serverOnly];
+    // Filtrar clientCmd: nunca re-abrir una cuenta ya cobrada (tablet desactualizada)
+    const cleanClientCmd = clientCmd.filter(c => !vtaIds.has(c.id));
+    const mergedCmd = [...cleanClientCmd, ...serverOnly];
 
     // Snapshot horario (hasta 48h de historial recuperable)
     await Promise.all([
@@ -285,8 +287,8 @@ app.get('/api/sync', (req, res) => {
 
   // Heartbeat cada 30s para mantener conexión viva
   const heartbeat = setInterval(() => {
-    res.write(':heartbeat\n\n');
-  }, 30000);
+    res.write('data: {"type":"hb"}\n\n'); // dato real para que onmessage detecte vida
+  }, 25000);
 
   req.on('close', () => {
     clearInterval(heartbeat);

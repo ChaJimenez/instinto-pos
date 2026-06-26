@@ -1425,7 +1425,8 @@ async function cargarDatos(esRecarga){
       try{const _lv=localStorage.getItem('i_vta');if(_lv)JSON.parse(_lv).forEach(v=>_localVta.push(v));}catch(_){}
       const _srvVtaIds=new Set(serverVta.map(v=>v.id));
       const _localOnly=_localVta.filter(v=>!_srvVtaIds.has(v.id));
-      comandas = serverCmd;
+      const _closedLocally = new Set(_localVta.map(v => v.id));
+      comandas = serverCmd.filter(c => !_closedLocally.has(c.id));
       ventas = _localOnly.length?[...serverVta,..._localOnly]:serverVta;
       meseros = safeMes;
       cancelaciones = d.canc || [];
@@ -1570,9 +1571,10 @@ function initSSE(){
 
     sse.onmessage=(e)=>{
       _sseLastSeen=Date.now();
-      if(e.data.startsWith(':'))return; // comentarios/heartbeat
+      if(e.data.startsWith(':'))return; // comentarios SSE (no deberían llegar)
       try{
         const msg=JSON.parse(e.data);
+        if(msg.type==='hb')return; // heartbeat de keep-alive, solo actualiza _sseLastSeen
         handleSyncEvent(msg);
       }catch(err){}
     };
@@ -1640,9 +1642,13 @@ setInterval(async()=>{
   }
 },600000);
 
-// Fallback polling (solo si sync no disponible): cada 30s
+// Polling activo cada 15s — garantía de sync aunque SSE falle (en Vercel el broadcast SSE
+// no cruza entre invocaciones, así que el polling es el mecanismo real de sync multi-tablet)
 setInterval(async()=>{
-  if(_syncConn)return; // Si tenemos conexión real, no polllear
+  if(_guardandoAhora)return; // No interferir si hay POST en vuelo
+  // Skip si SSE recibió heartbeat en los últimos 30s (conexión genuinamente activa)
+  const sseActivo=_syncConn&&_sseLastSeen>0&&(Date.now()-_sseLastSeen<30000);
+  if(sseActivo)return;
   try{
     const r=await fetch('/api/lastUpdate');
     if(!r.ok)throw new Error('HTTP '+r.status);
@@ -1662,7 +1668,7 @@ setInterval(async()=>{
     }
     setSyncDot(true);
   }catch(e){setSyncDot(false);}
-},30000);
+},15000);
 
 // Iniciar sync al cargar
 window.addEventListener('load',()=>{initSync();});
