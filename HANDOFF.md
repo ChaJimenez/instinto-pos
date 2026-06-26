@@ -1,6 +1,6 @@
 # HANDOFF — POS INSTINTO
-**Última actualización:** 25 junio 2026 (sesión 3)  
-**Commit activo:** `ff2080a`  
+**Última actualización:** 26 junio 2026 (sesión 4)  
+**Commit activo:** `73a0a39`  
 **Rama:** `main` · Deploy automático en Vercel al hacer push
 
 ---
@@ -124,11 +124,23 @@ inv:*              → inventarios (compartido con instinto-inventario)
 - **B29 ✅ (comandas/datos corruptos)**: `guardar()` no tenía guard de re-entrada. El auto-save de 5 min podía dispararse mientras ya había un `guardar()` en vuelo, creando 2 saves simultáneos. El `finally` del primero liberaba `_guardandoAhora=false` antes de que el segundo terminara, permitiendo que el polling interfiriera con datos parcialmente escritos. Fix: guard de re-entrada con flag `_pendingGuardar` — si ya hay un save en vuelo, el nuevo se encola y ejecuta al terminar el actual.
 - **B30 ✅ (crash silencioso)**: El `fetch` interno de sync dentro de `cargarDatos(true)` (cuando hay soloLocales) no tenía try-catch. Un 409 ahí propagaba el error y dejaba el estado en un limbo. Ahora envuelto en try-catch.
 
+### Sesión 26 jun 2026 — segunda ronda (bugs descubiertos en operación real)
+
+- **B31 ✅ (conflicto 409 ruidoso)**: El toast "Conflicto de sync — recargando datos..." aparecía en el área de meseros al guardar simultáneamente. Era correcto en lógica pero alarmante. Ahora es silencioso (solo `console.warn`). Commit `92e9d23`.
+
+- **B32 ✅ (precios no guardan — causa raíz)**: `guardarMenuAdmin()` usaba `pedirPin()` que valida contra `/api/validate-pin`. Ese endpoint tiene rate limit compartido con todos los dispositivos de la misma IP. Con 3 tablets, el límite de 10/min se agotaba bloqueando la validación silenciosamente — el callback de guardado nunca se ejecutaba. Además, los gerentes usan PIN 2517 pero el menú pedía PIN de admin (1234): dos PINs distintos que se confundían. Fix: `guardarMenuAdmin()` y `guardarMenuDelivery()` ahora usan directamente `X-API-Key: API_KEY` (el gerente ya está autenticado para estar en el tab Config). El backend acepta token JWT O PIN admin. Commit `0424160`.
+
+- **B33 ✅ (rate limiter cascada — bloqueaba login, impresión y todo)**: El rate limiter usaba una sola clave por IP para TODOS los endpoints de auth. 10 intentos fallidos en cualquier endpoint (tablets recargando, meseros probando PINs) bloqueaba también el login de gerente (`/api/gerentes/validar`), el gate inicial (`/api/auth`) y el guardado de menú. Sin `API_KEY` válida, las impresiones también fallaban (usan `requireAuth`). Fix: clave de rate limit ahora incluye el endpoint (`rl:{ip+route}:{window}`). Límite subido de 10 a 30/min. Commit `90ebd31`.
+
+- **B34 ✅ (ID duplicado `#pinError` — errores del gate invisible)**: `#pinGate` y `#modalPinGenerico` ambos tenían `id="pinError"`. `getElementById` devuelve el primero en el DOM (el del modal), así que el gate nunca mostraba sus errores. Renombrado a `#pinGateError` en el gate. Commit `73a0a39`.
+
+- **B35 ✅ (429 confundido con PIN incorrecto)**: Al rate-limitar, el servidor devuelve 429 pero el frontend mostraba "PIN incorrecto". El usuario reintentaba → empeoraba el rate limit. Ahora muestra "Demasiados intentos — espera 1 minuto" correctamente en gate y lock screen. Commit `73a0a39`.
+
 ---
 
 ## BUGS PENDIENTES
 
-Todos los bugs de bajo impacto han sido corregidos o cerrados. Sistema limpio.
+Todos los bugs conocidos han sido corregidos. Sistema limpio.
 
 | # | Decisión | Razón |
 |---|----------|-------|
@@ -164,3 +176,5 @@ Tests rápidos de sanidad:
 3. **Reportes:** Forma de pago muestra Efectivo/Tarjeta/Débito reales
 4. **Impresoras:** Refresco → barra ✓ | Hamburguesa → cocina ✓
 5. **Turnos panel admin:** inactivo 5 min → pide PIN de nuevo
+6. **Precio:** Config → Menú base → cambiar precio → Guardar → refrescar → precio nuevo ✓ (sin pedir PIN)
+7. **Gerente login:** seleccionar nombre → PIN 2517 → entra sin error
