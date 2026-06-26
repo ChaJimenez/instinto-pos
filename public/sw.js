@@ -1,6 +1,6 @@
-// INSTINTO POS — Service Worker v4
+// INSTINTO POS — Service Worker v5
 // Cachea el app shell completo para funcionar sin conexión
-const CACHE = 'instinto-pos-v6';
+const CACHE = 'instinto-pos-v7';
 const SHELL = [
   '/',
   '/index.html',
@@ -30,10 +30,20 @@ self.addEventListener('activate', e => {
 self.addEventListener('fetch', e => {
   const url = new URL(e.request.url);
 
-  // Llamadas a la API: red primero, fallback JSON vacío (no cachear)
+  // API calls: network-first; convierte respuestas HTML de error a JSON válido (B26)
   if (url.pathname.startsWith('/api/')) {
     e.respondWith(
-      fetch(e.request).catch(() =>
+      fetch(e.request).then(resp => {
+        const ct = resp.headers.get('content-type') || '';
+        // Vercel puede devolver HTML en errores 500 — convertir a JSON para no romper parseJSON
+        if (!resp.ok && !ct.includes('application/json')) {
+          return new Response(
+            JSON.stringify({ error: 'server_error', status: resp.status }),
+            { status: resp.status, headers: { 'Content-Type': 'application/json' } }
+          );
+        }
+        return resp;
+      }).catch(() =>
         new Response(
           JSON.stringify({ error: 'offline' }),
           { status: 503, statusText: 'Offline', headers: { 'Content-Type': 'application/json' } }
@@ -43,19 +53,17 @@ self.addEventListener('fetch', e => {
     return;
   }
 
-  // Navegación (HTML): cache primero (responde inmediato) + actualiza en background.
-  // NOTA: un deploy nuevo tarda 1 recarga en llegar — primera carga sirve cache viejo,
-  // segunda ya tiene el HTML actualizado. Comportamiento esperado, no bug.
+  // Navegación (HTML): network-first con fallback a cache (B25)
+  // Deploy nuevo llega en la primera recarga — ya no se necesitan 2 recargas
   if (e.request.mode === 'navigate') {
     e.respondWith(
       caches.open(CACHE).then(cache =>
-        cache.match(e.request).then(cached => {
-          const networkFetch = fetch(e.request).then(resp => {
-            if (resp.ok) cache.put(e.request, resp.clone());
-            return resp;
-          }).catch(() => cached || caches.match('/index.html'));
-          return cached || networkFetch;
-        })
+        fetch(e.request).then(resp => {
+          if (resp.ok) cache.put(e.request, resp.clone());
+          return resp;
+        }).catch(() =>
+          cache.match(e.request).then(cached => cached || caches.match('/index.html'))
+        )
       )
     );
     return;

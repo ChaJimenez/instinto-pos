@@ -1638,12 +1638,12 @@ async function handleSyncEvent(msg){
 }
 
 // Auto-save silencioso cada 5 min — respaldo continuo ante fallos de red
-setInterval(()=>{
+const _autoSaveInterval=setInterval(()=>{
   if((ventas.length||comandas.length)&&navigator.onLine) guardar().catch(()=>{});
 },300000);
 
 // Verificación de token cada 10 min — renueva antes de que expire para no perder ventas en turno largo
-setInterval(async()=>{
+const _tokenCheckInterval=setInterval(async()=>{
   if(_tokExp>0&&Date.now()>_tokExp-120000){
     sessionStorage.removeItem('_pt');sessionStorage.removeItem('_pte');
     API_KEY='';_tokExp=0;
@@ -1653,7 +1653,7 @@ setInterval(async()=>{
 
 // Polling activo cada 15s — garantía de sync aunque SSE falle (en Vercel el broadcast SSE
 // no cruza entre invocaciones, así que el polling es el mecanismo real de sync multi-tablet)
-setInterval(async()=>{
+const _pollingInterval=setInterval(async()=>{
   if(_guardandoAhora)return; // No interferir si hay POST en vuelo
   // Skip si SSE recibió heartbeat en los últimos 30s (conexión genuinamente activa)
   const sseActivo=_syncConn&&_sseLastSeen>0&&(Date.now()-_sseLastSeen<30000);
@@ -1678,6 +1678,13 @@ setInterval(async()=>{
     setSyncDot(true);
   }catch(e){setSyncDot(false);}
 },15000);
+
+// Limpiar intervals en pagehide (bfcache — evita duplicados si el navegador restaura la página)
+window.addEventListener('pagehide',()=>{
+  clearInterval(_autoSaveInterval);
+  clearInterval(_tokenCheckInterval);
+  clearInterval(_pollingInterval);
+});
 
 // Iniciar sync al cargar
 window.addEventListener('load',()=>{initSync();});
@@ -2196,6 +2203,7 @@ async function imprimirCuentaActiva(){
 }
 
 async function enviarRecibo(venta){
+  let firstErr=null;
   for(let i=0;i<3;i++){
     try{
       const r=await fetch('/api/imprimir-recibo',{method:'POST',headers:{'Content-Type':'application/json','X-API-Key':API_KEY},body:JSON.stringify(venta)});
@@ -2203,7 +2211,8 @@ async function enviarRecibo(venta){
       toast('🖨 Cuenta enviada a impresora ✓');
       return;
     }catch(e){
-      if(i===2)toast('⚠ Error al enviar recibo: '+e.message+' — verifica el servidor de impresión');
+      if(!firstErr)firstErr=e;
+      if(i===2)toast('⚠ Error al enviar recibo: '+firstErr.message+' — verifica el servidor de impresión');
       else await new Promise(r=>setTimeout(r,800));
     }
   }

@@ -1,6 +1,6 @@
 # HANDOFF — POS INSTINTO
-**Última actualización:** 25 junio 2026  
-**Commit activo:** `bd3e344`  
+**Última actualización:** 25 junio 2026 (sesión 2)  
+**Commit activo:** pendiente push  
 **Rama:** `main` · Deploy automático en Vercel al hacer push
 
 ---
@@ -100,6 +100,15 @@ inv:*              → inventarios (compartido con instinto-inventario)
 - `currentCanal` (delivery) persiste en localStorage entre recargas y tablets
 - `cargarEmpleadosAdmin()` trae datos frescos del servidor — dos tabs ya no se pisan
 
+### Sesión 25 jun — tercera ronda (pendiente push)
+- **B9**: Corregido comentario heartbeat (decía "30s", código es "25s")
+- **B18**: `enviarRecibo` guarda `firstErr` — muestra el error original, no el del último reintento
+- **B20**: Confirmado resuelto — `BARRA_CATS_FRONT` se actualiza desde servidor en `/api/datos`
+- **B24**: 3 `setInterval` globales asignados a `_autoSaveInterval`, `_tokenCheckInterval`, `_pollingInterval` + `pagehide` listener para bfcache
+- **B25**: SW navegación cambia de cache-first a network-first → deploy llega en 1 recarga
+- **B26**: SW valida content-type en API calls → HTML 500 de Vercel ya no rompe JSON.parse
+- **B13, B17, B21**: Won't fix — B13: riesgo teórico en POS interno; B17: dos tabs mismo browser no es escenario real; B21: lock timer no debe resetear en SSE (correcto por seguridad)
+
 ### Commits anteriores (sesión 25 jun — primera ronda)
 - Race condition comandas, propinas en pago mixto, token 401, descuento empleado
 - CORS restringido, rate limit en Redis, PINs hasheados, costoTotal prorateado
@@ -107,19 +116,15 @@ inv:*              → inventarios (compartido con instinto-inventario)
 
 ---
 
-## BUGS PENDIENTES (bajo impacto — no bloquean operación)
+## BUGS PENDIENTES
 
-| # | Archivo | Descripción |
-|---|---------|-------------|
-| B9 | api/index.js | Heartbeat gap: servidor cada 25s, cliente detecta muerte a 45s |
-| B13 | api/index.js | Rate limiting ventana fija (bypass teórico en frontera de minuto) |
-| B17 | index.html | Descuento % raro si hay dos tabs del POS abiertas en el mismo browser |
-| B18 | index.html | `enviarRecibo` muestra error del último reintento, no el primero |
-| B20 | index.html | Descuento empleado usa BARRA_CATS_FRONT — revisar si ya toma del servidor |
-| B21 | index.html | Lock screen no resetea timer en mensajes SSE (solo en interacción táctil) |
-| B24 | index.html | 3 `setInterval` globales nunca se limpian (memory leak acumulativo en recargas) |
-| B25 | sw.js | HTML cache-first: deploy nuevo tarda 2 recargas en verse |
-| B26 | sw.js | SW no valida que fetch del servidor devuelva JSON válido |
+Todos los bugs de bajo impacto han sido corregidos o cerrados. Sistema limpio.
+
+| # | Decisión | Razón |
+|---|----------|-------|
+| B13 | Won't fix | Rate limit fija es suficiente para POS interno — sliding window es over-engineering |
+| B17 | Won't fix | Dos tabs del mismo POS en el mismo browser no es un escenario operativo real |
+| B21 | No es bug | Lock timer NO debe resetear en SSE — solo interacción humana (correcto por seguridad) |
 
 ---
 

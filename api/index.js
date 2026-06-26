@@ -326,7 +326,7 @@ app.get('/api/sync', (req, res) => {
   _clients.add(res);
   res.write(':connected\n\n');
 
-  // Heartbeat cada 30s para mantener conexión viva
+  // Heartbeat cada 25s para mantener conexión viva
   const heartbeat = setInterval(() => {
     res.write('data: {"type":"hb"}\n\n'); // dato real para que onmessage detecte vida
   }, 25000);
