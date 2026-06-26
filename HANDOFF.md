@@ -1,6 +1,6 @@
 # HANDOFF — POS INSTINTO
-**Última actualización:** 25 junio 2026 (sesión 2)  
-**Commit activo:** pendiente push  
+**Última actualización:** 25 junio 2026 (sesión 3)  
+**Commit activo:** `ff2080a`  
 **Rama:** `main` · Deploy automático en Vercel al hacer push
 
 ---
