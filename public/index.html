@@ -1497,9 +1497,10 @@ async function guardar(){
       body:JSON.stringify({cmd:comandas,vta:ventas,mes:meseros,canc:cancelaciones,...(ultimaActualizacion>0?{ts:ultimaActualizacion}:{})})
     });
     if(_gResp.status===409){
-      toast('⚠ Conflicto de sync — recargando datos...');
+      // 409 = otro dispositivo está guardando al mismo tiempo. Resolución silenciosa:
+      // resincronizar datos y reintentar sin molestar al usuario.
+      console.warn('Conflicto de sync (409) — resolviendo silenciosamente...');
       await cargarDatos(true);
-      // BUG #4 FIX: Re-intentar guardar después de resolver conflicto
       if((comandas.length||ventas.length)&&navigator.onLine){
         setTimeout(()=>guardar().catch(()=>{}),1000);
       }
