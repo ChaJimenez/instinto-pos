@@ -304,10 +304,10 @@ app.post('/api/restaurar', requireAuth, async (req, res) => {
 // ── Timestamp para polling de sync ──
 app.get('/api/lastUpdate', async (req, res) => {
   try {
-    const ts = await kv.get(KEYS.ts);
-    res.json({ ts: ts || 0 });
+    const [ts, menuTs] = await Promise.all([kv.get(KEYS.ts), kv.get('i:menuUpdate')]);
+    res.json({ ts: ts || 0, menuTs: menuTs || 0 });
   } catch (e) {
-    res.json({ ts: 0 });
+    res.json({ ts: 0, menuTs: 0 });
   }
 });
 
@@ -625,7 +625,10 @@ app.post('/api/menu', async (req, res) => {
     if (!categorias || typeof categorias !== 'object') return res.status(400).json({ error: 'Formato inválido' });
     // PERSISTENCIA: TTL de 90 días para asegurar que no expire en cambios normales
     // Si el TTL es muy corto, menú se pierde cuando se reinicia Redis
-    await kv.set(MENU_KEY, { categorias, extras: extras || [] }, { ex: 60 * 60 * 24 * 90 });
+    await Promise.all([
+      kv.set(MENU_KEY, { categorias, extras: extras || [] }, { ex: 60 * 60 * 24 * 90 }),
+      kv.set('i:menuUpdate', Date.now()),
+    ]);
     if (Array.isArray(log86) && log86.length) {
       await kv.rpush('i:86log', ...log86.map(e => JSON.stringify(e)));
       await kv.ltrim('i:86log', -500, -1);

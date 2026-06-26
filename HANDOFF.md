@@ -116,6 +116,11 @@ inv:*              → inventarios (compartido con instinto-inventario)
 
 ---
 
+### Sesión 26 jun 2026 — bug precios multi-tablet
+- **B27 ✅**: Cambios de precio no se propagaban a otros tablets. `POST /api/menu` ahora también escribe `i:menuUpdate` en Redis. `GET /api/lastUpdate` ahora retorna `{ts, menuTs}`. El polling cada 15s compara `menuTs` y llama `cargarMenuRemoto()` + `initMenu()` si detecta cambio — precios se sincronizan en ≤15s entre todos los dispositivos.
+
+---
+
 ## BUGS PENDIENTES
 
 Todos los bugs de bajo impacto han sido corregidos o cerrados. Sistema limpio.
@@ -123,7 +128,7 @@ Todos los bugs de bajo impacto han sido corregidos o cerrados. Sistema limpio.
 | # | Decisión | Razón |
 |---|----------|-------|
 | B13 | Won't fix | Rate limit fija es suficiente para POS interno — sliding window es over-engineering |
-| B17 | Won't fix | Dos tabs del mismo POS en el mismo browser no es un escenario operativo real |
+| B17 | Won't fix | Dos tabs del mismo POS en el mismo browser no es un escenario real |
 | B21 | No es bug | Lock timer NO debe resetear en SSE — solo interacción humana (correcto por seguridad) |
 
 ---
