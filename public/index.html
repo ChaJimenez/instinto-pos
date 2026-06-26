@@ -1107,7 +1107,7 @@ body { font-family: system-ui, -apple-system, sans-serif; background: #f5f5f3; m
     <input id="pinInput" type="password" inputmode="numeric" maxlength="8" placeholder="••••"
       style="width:100%;box-sizing:border-box;padding:14px;font-size:22px;text-align:center;letter-spacing:8px;border:1px solid #444;border-radius:10px;background:#111;color:#fff;outline:none;margin-bottom:12px;"
       onkeydown="if(event.key==='Enter')_submitPin()">
-    <div id="pinError" style="color:#ef4444;font-size:13px;min-height:18px;margin-bottom:10px;"></div>
+    <div id="pinGateError" style="color:#ef4444;font-size:13px;min-height:18px;margin-bottom:10px;"></div>
     <button onclick="_submitPin()" style="width:100%;padding:14px;background:#f5a020;color:#000;font-weight:800;font-size:15px;border:none;border-radius:10px;cursor:pointer;">Entrar</button>
   </div>
 </div>
@@ -1126,7 +1126,7 @@ function _showPinGate() {
     _pinResolve = resolve;
     const gate = document.getElementById('pinGate');
     gate.style.display = 'flex';
-    document.getElementById('pinError').textContent = '';
+    document.getElementById('pinGateError').textContent = '';
     document.getElementById('pinInput').value = '';
     setTimeout(() => document.getElementById('pinInput').focus(), 100);
   });
@@ -1139,7 +1139,9 @@ async function _submitPin() {
   try {
     const r = await fetch('/api/auth', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ pin }) });
     if (!r.ok) {
-      document.getElementById('pinError').textContent = 'PIN incorrecto — intenta de nuevo';
+      const ed=await r.json().catch(()=>({}));
+      const errMsg=r.status===429?'Demasiados intentos — espera 1 minuto':(ed.error||'PIN incorrecto — intenta de nuevo');
+      document.getElementById('pinGateError').textContent = errMsg;
       document.getElementById('pinInput').value = '';
       document.getElementById('pinInput').focus();
       return;
@@ -1344,7 +1346,8 @@ async function _submitLockGerente(){
       switchTab('abiertas');
       toast('Bienvenido, '+nombre);
     }else{
-      document.getElementById('lockGerenteError').textContent='PIN incorrecto';
+      const errMsg=r.status===429?'Demasiados intentos — espera 1 minuto':'PIN incorrecto';
+      document.getElementById('lockGerenteError').textContent=errMsg;
       document.getElementById('lockGerentePin').value='';
       document.getElementById('lockGerentePin').focus();
     }
